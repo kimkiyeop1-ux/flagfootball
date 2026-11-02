@@ -233,6 +233,9 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .bigwrap .pts{font-family:"Black Han Sans","Noto Sans KR",sans-serif;font-size:clamp(2.5rem,12vw,5rem);color:var(--flag);line-height:1}
 .bigwrap .close{font-size:.95rem;opacity:.7;margin-top:2vh}
 .bigBtn{width:100%}
+.row .nm small{display:block;font-size:.72rem;color:var(--muted);font-weight:400;margin-top:1px}
+.filebtn{display:inline-flex;align-items:center;cursor:pointer}
+.xinfo{margin:0;font-size:.85rem;line-height:1.6;color:var(--ink);background:var(--soft);border-radius:10px;padding:8px 10px}
 </style>
 </head>
 <body>
@@ -366,6 +369,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
         <button type="button" data-f="pass" aria-pressed="false">패스 미측정</button>
         <button type="button" data-f="strat" aria-pressed="false">전략 미측정</button>
         <button type="button" data-f="open" aria-pressed="false">평가 미완료</button>
+        <button type="button" data-f="recent" aria-pressed="false">최근 저장순</button>
       </div>
       <div class="list" id="recList" style="margin-top:10px"></div>
       <div class="copybox" style="margin-top:12px">
@@ -376,6 +380,16 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
         </div>
         <textarea id="copyFallback" readonly hidden aria-label="복사할 기록"></textarea>
         <p class="msg" id="copyMsg" aria-live="polite" style="text-align:left"></p>
+      </div>
+      <div class="copybox" style="margin-top:12px">
+        <p><b style="color:var(--ink);font-size:.95rem">폰 → 컴퓨터로 옮기기</b><br>수업 후 폰에서 '기록 보내기'를 눌러 카카오톡 나와의 채팅이나 내 메일로 파일을 보내고, 학년실 컴퓨터 앱에서 그 파일을 '받은 파일 합치기'로 불러오세요. 같은 기록은 한 번만 들어가요.</p>
+        <p class="xinfo" id="xferInfo"></p>
+        <div class="btnrow">
+          <button class="primary" id="sendBtn" type="button">기록 보내기</button>
+          <button class="ghost" id="saveFileBtn" type="button">파일로 저장</button>
+          <label class="ghost filebtn">받은 파일 합치기<input type="file" id="importFile" accept=".json,application/json,text/plain" hidden></label>
+        </div>
+        <p class="msg" id="xferMsg" aria-live="polite" style="text-align:left"></p>
       </div>
     </div>
   </section>
@@ -509,10 +523,10 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   let storageOK=true;
   function readJSON(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
   function writeJSON(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); storageOK=true; }catch(e){ storageOK=false; } }
-  function freshDB(){ return {students:[], records:{}, strat:{}, teams:{}}; }
+  function freshDB(){ return {students:[], records:{}, strat:{}, teams:{}, meta:{}}; }
   let db = readJSON(DB_KEY) || freshDB();
   if(!Array.isArray(db.students)) db.students=[];
-  ["records","strat","teams"].forEach(k=>{ if(!db[k] || typeof db[k]!=="object") db[k]={}; });
+  ["records","strat","teams","meta"].forEach(k=>{ if(!db[k] || typeof db[k]!=="object") db[k]={}; });
   Object.keys(db.records).forEach(id=>{
     const r=db.records[id];
     if(!Array.isArray(r.attempts)){
@@ -718,7 +732,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       lines.push(nameOf(id)+" "+r.attempts.length+"회차 저장 (최고 "+best("pass",id)+"개)");
     });
     saveDB(); reset();
-    msg.textContent = storageOK ? lines.join(" · ")+(markDone?" · 평가 완료":"") : "이 브라우저에서는 저장이 안 돼요. 기록을 따로 적어 두세요.";
+    msg.textContent = storageOK ? fmtTime(Date.now())+" 저장 · "+lines.join(" · ")+(markDone?" · 평가 완료":"") : "이 브라우저에서는 저장이 안 돼요. 기록을 따로 적어 두세요.";
     renderPair();
   }
   saveBtn.addEventListener("click",()=>saveAttempt(false));
@@ -827,7 +841,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       if(markDone) r.done=true;
     });
     saveDB(); clearJudge();
-    $("stMsg").textContent = storageOK ? t.name+" "+ids.length+"명 "+n+"개 저장"+(markDone?" · 평가 완료":"") : "이 브라우저에서는 저장이 안 돼요. 기록을 따로 적어 두세요.";
+    $("stMsg").textContent = storageOK ? fmtTime(Date.now())+" 저장 · "+t.name+" "+ids.length+"명 "+n+"개 저장"+(markDone?" · 평가 완료":"") : "이 브라우저에서는 저장이 안 돼요. 기록을 따로 적어 두세요.";
     renderStrat();
   }
   $("stSave").addEventListener("click",()=>saveStrat(false));
@@ -904,8 +918,10 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     ["번호","이름","패스","전략"].forEach((t,i)=>{ const sp=document.createElement("span"); sp.textContent=t; if(i>1) sp.style.textAlign="right"; head.append(sp); });
     list.append(head);
     const sts=classStudents(curClass); let pm=0, sm=0, shown=0;
-    sts.forEach(st=>{
-      const id=st.id; if(hasRec("pass",id)) pm++; if(hasRec("strat",id)) sm++;
+    sts.forEach(st=>{ if(hasRec("pass",st.id)) pm++; if(hasRec("strat",st.id)) sm++; });
+    const view = recFilter==="recent" ? sts.filter(st=>latestAt(st.id)>0).sort((a,b)=>latestAt(b.id)-latestAt(a.id)) : sts;
+    view.forEach(st=>{
+      const id=st.id;
       if(recFilter==="pass" && hasRec("pass",id)) return;
       if(recFilter==="strat" && hasRec("strat",id)) return;
       if(recFilter==="open" && isDone("pass",id) && isDone("strat",id)) return;
@@ -913,6 +929,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       const b=document.createElement("button"); b.type="button"; b.className="row"+(hasRec("pass",id)||hasRec("strat",id)?"":" todo");
       const sId=document.createElement("span"); sId.className="id"; sId.textContent=id;
       const sNm=document.createElement("span"); sNm.className="nm"; sNm.textContent=st.name;
+      const la=latestAt(id); if(la){ const t=document.createElement("small"); t.textContent="최근 "+fmtTime(la); sNm.append(t); }
       b.append(sId,sNm,cell("pass",id),cell("strat",id));
       b.addEventListener("click",()=>openEdit(id));
       list.append(b);
@@ -924,8 +941,21 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       ? "학생별 최고 기록이 복사돼요. 구글 시트 '학생기록' 탭에서 "+first.id+" 학생 줄의 '패스&캐치(개)' 칸(M열)을 누르고 붙여넣으면 M·N·O·P열(패스 개수, 패스배점, 전략 개수, 전략배점)에 들어가요. '전체 반 복사'는 첫 학생 줄 M열에 붙여넣으세요."
       : "";
     $("copyFallback").hidden=true; $("copyMsg").textContent="";
+    renderXfer();
   }
-  function fmtTime(t){ const d=new Date(t); return (d.getMonth()+1)+"/"+d.getDate()+" "+d.getHours()+":"+String(d.getMinutes()).padStart(2,"0"); }
+  function fmtTime(t){ const d=new Date(t), p=n=>String(n).padStart(2,"0"); return (d.getMonth()+1)+"/"+d.getDate()+" "+p(d.getHours())+":"+p(d.getMinutes()); }
+  function latestAt(id){
+    let m=0;
+    ["pass","strat"].forEach(k=>{ const r=store(k)[id]; if(!r) return; r.attempts.forEach(a=>{ if(a.at>m) m=a.at; }); if(r.absent && r.at>m) m=r.at; });
+    return m;
+  }
+  function allAttempts(){ const out=[]; ["pass","strat"].forEach(k=>Object.values(store(k)).forEach(r=>r.attempts.forEach(a=>out.push(a)))); return out; }
+  function renderXfer(){
+    const all=allAttempts(), last=all.reduce((m,a)=>Math.max(m,a.at||0),0), ex=db.meta.lastExport||0;
+    const fresh=all.filter(a=>a.at>ex).length;
+    $("xferInfo").textContent = (last ? "마지막 저장 "+fmtTime(last) : "아직 저장한 기록이 없어요")
+      + " · " + (ex ? "마지막 보내기 "+fmtTime(ex)+(fresh?" (그 뒤 새 회차 "+fresh+"건)":" (그 뒤 새 기록 없음)") : "아직 보낸 적 없음");
+  }
   function renderEdit(){
     const k=editKind, id=editId, st=byId(id), r=store(k)[id]||{attempts:[],absent:false,done:false};
     document.querySelectorAll(".seg2 button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.k===k)));
@@ -967,7 +997,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   });
   $("editAbsent").addEventListener("click",()=>{
     const r=recOf(editKind,editId); if(r.attempts.length) return;
-    r.absent=!r.absent; cleanup(editKind,editId); saveDB(); renderEdit(); renderAllRec();
+    r.absent=!r.absent; r.at=Date.now(); cleanup(editKind,editId); saveDB(); renderEdit(); renderAllRec();
   });
   $("editDel").addEventListener("click",async()=>{
     editDlg.close();
@@ -1018,19 +1048,34 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 
   // ================= 백업 =================
   $("backupBtn").addEventListener("click",async()=>{
-    const text=JSON.stringify({app:"flagFootball2", v:1, at:Date.now(), db});
+    const text=exportText();
     const ok=await copyText(text), out=$("backupOut");
+    markExported();
     const n=db.students.length;
     if(ok){ out.hidden=true; $("backupMsg").textContent="백업 복사됨 (학생 "+n+"명). 메모나 문서에 붙여넣어 보관하세요."; }
     else { out.hidden=false; out.value=text; out.focus(); out.select(); $("backupMsg").textContent="자동 복사가 막혀 있어요. 위 칸이 선택된 상태에서 길게 눌러 복사하세요."; }
   });
-  function readBackup(){
+  const exportText = () => JSON.stringify({app:"flagFootball2", v:1, at:Date.now(), db});
+  function markExported(){ db.meta.lastExport=Date.now(); saveDB(); renderXfer(); }
+  function parseBackup(text){
     try{
-      const o=JSON.parse($("restoreIn").value.trim());
+      const o=JSON.parse(String(text).trim());
       if(!o || o.app!=="flagFootball2" || !o.db || !Array.isArray(o.db.students)) return null;
       const d=o.db; ["records","strat","teams"].forEach(k=>{ if(!d[k]||typeof d[k]!=="object") d[k]={}; });
-      return d;
+      d.__at=o.at; return d;
     }catch(e){ return null; }
+  }
+  const readBackup = () => parseBackup($("restoreIn").value);
+  function mergeFrom(src){
+    const before=allAttempts().length;
+    const ids=new Set(db.students.map(x=>x.id));
+    src.students.forEach(st=>{ if(!ids.has(st.id)){ db.students.push(st); ids.add(st.id); } });
+    mergeRec(db.records, src.records); mergeRec(db.strat, src.strat);
+    Object.keys(src.teams).forEach(c=>{
+      const mine=(db.teams[c] ||= []);
+      (src.teams[c]||[]).forEach(t=>{ if(!mine.find(x=>x.id===t.id)) mine.push(t); });
+    });
+    return allAttempts().length-before;
   }
   function mergeRec(dst, src){
     Object.keys(src).forEach(id=>{
@@ -1042,6 +1087,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       b.attempts.sort((x,y)=>x.at-y.at);
       b.done = b.done || !!a.done;
       b.absent = !b.attempts.length && (b.absent || !!a.absent);
+      if(a.at && (!b.at || a.at>b.at)) b.at=a.at;
     });
   }
   async function afterRestore(text){
@@ -1053,21 +1099,47 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     const src=readBackup();
     if(!src){ $("backupMsg").textContent="백업 내용을 읽지 못했어요. '백업 복사'로 만든 내용을 빠짐없이 붙여넣었는지 확인하세요."; return; }
     if(!(await ask("백업의 명단과 기록을 지금 기록에 합칠까요? 같은 회차는 한 번만 들어가요.","합치기"))) return;
-    const ids=new Set(db.students.map(x=>x.id));
-    src.students.forEach(st=>{ if(!ids.has(st.id)){ db.students.push(st); ids.add(st.id); } });
-    mergeRec(db.records, src.records); mergeRec(db.strat, src.strat);
-    Object.keys(src.teams).forEach(c=>{
-      const mine=(db.teams[c] ||= []);
-      (src.teams[c]||[]).forEach(t=>{ if(!mine.find(x=>x.id===t.id)) mine.push(t); });
-    });
-    afterRestore("합쳤어요. 지금 학생 "+db.students.length+"명이에요.");
+    const added=mergeFrom(src);
+    afterRestore("합쳤어요. 새 회차 "+added+"건이 들어왔어요. 지금 학생 "+db.students.length+"명이에요.");
   });
   $("restoreBtn").addEventListener("click",async()=>{
     const src=readBackup();
     if(!src){ $("backupMsg").textContent="백업 내용을 읽지 못했어요. '백업 복사'로 만든 내용을 빠짐없이 붙여넣었는지 확인하세요."; return; }
     if(!(await ask("지금 기기의 명단과 기록을 모두 지우고 백업 내용으로 바꿀까요?","바꾸기"))) return;
-    db={students:src.students, records:src.records, strat:src.strat, teams:src.teams};
+    db={students:src.students, records:src.records, strat:src.strat, teams:src.teams, meta:{}};
     afterRestore("백업으로 바꿨어요. 학생 "+db.students.length+"명이에요.");
+  });
+
+  // ================= 폰 → 컴퓨터 옮기기 =================
+  function stamp(){ const d=new Date(), p=n=>String(n).padStart(2,"0"); return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+"_"+p(d.getHours())+p(d.getMinutes()); }
+  function downloadText(text, name){
+    const url=URL.createObjectURL(new Blob([text],{type:"application/json"}));
+    const a=document.createElement("a"); a.href=url; a.download=name; document.body.append(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 4000);
+  }
+  $("sendBtn").addEventListener("click",async()=>{
+    const text=exportText(), name="플래그풋볼_기록_"+stamp()+".json", xm=$("xferMsg");
+    const file=new File([text], name, {type:"application/json"});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      try{ await navigator.share({files:[file], title:"플래그 풋볼 기록"}); markExported(); xm.textContent=name+" 보냈어요."; }
+      catch(e){ xm.textContent = e && e.name==="AbortError" ? "보내기를 취소했어요." : "보내기가 안 돼서 파일로 저장할게요."; if(!(e && e.name==="AbortError")){ downloadText(text,name); markExported(); } }
+    } else { downloadText(text,name); markExported(); xm.textContent=name+" 파일로 저장했어요. 이 파일을 컴퓨터로 옮기세요."; }
+  });
+  $("saveFileBtn").addEventListener("click",()=>{
+    const name="플래그풋볼_기록_"+stamp()+".json";
+    downloadText(exportText(), name); markExported(); $("xferMsg").textContent=name+" 파일로 저장했어요.";
+  });
+  $("importFile").addEventListener("change",async e=>{
+    const f=e.target.files && e.target.files[0]; e.target.value=""; if(!f) return;
+    const xm=$("xferMsg"); let src=null;
+    try{ src=parseBackup(await new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=rej; fr.readAsText(f); })); }catch(err){}
+    if(!src){ xm.textContent="이 파일은 읽을 수 없어요. 앱에서 '기록 보내기'나 '파일로 저장'으로 만든 파일인지 확인하세요."; return; }
+    const when = src.__at ? fmtTime(src.__at)+"에 보낸 " : "";
+    if(!(await ask(when+"기록을 이 기기 기록과 합칠까요? 같은 회차는 한 번만 들어가요.","합치기"))) return;
+    const added=mergeFrom(src);
+    pair=[null,null]; roles=["rec","rec"]; curTeam=null; stHelper.clear(); clearJudge();
+    saveDB(); renderAll();
+    xm.textContent = storageOK ? when+"기록을 합쳤어요. 새 회차 "+added+"건이 들어왔어요." : "이 브라우저에서는 저장이 안 돼요.";
   });
 
   // ================= 명단 =================
