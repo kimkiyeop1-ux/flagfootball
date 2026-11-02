@@ -1146,8 +1146,10 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   function parseRoster(text){
     const out=[], seen=new Set();
     text.split(/\r?\n/).forEach(line=>{
-      const cells=line.split(/\t|,/).map(x=>x.trim());
-      const id=cells[0];
+      // 컴퓨터(탭)·휴대폰(띄어쓰기)·쉼표 모두 인식, 보이지 않는 문자 제거
+      const clean=line.replace(/[\u200b-\u200d\ufeff\u2060]/g,"").replace(/[\u00a0\u3000]/g," ").trim();
+      const cells=clean.split(/\s*[\t,]\s*|\s+/).filter(Boolean);
+      const id=(cells[0]||"").replace(/[^0-9]/g,"")===cells[0] ? cells[0] : "";
       if(!/^\d{4,5}$/.test(id) || seen.has(id)) return;
       const name=(cells[1]||"").slice(0,20);
       const cls = id.length===4 ? +id[1] : +id.slice(1,3);
