@@ -539,17 +539,19 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   const store = k => db[KIND[k].key];
   const recOf = (k,id) => store(k)[id] || (store(k)[id]={attempts:[], absent:false, done:false});
   const hasRec = (k,id) => { const r=store(k)[id]; return !!r && (r.attempts.length>0 || r.absent); };
-  const isDone = (k,id) => !!(store(k)[id] && store(k)[id].done);
+  const PASS_MAX = 3; // 패스&캐치 학생별 최대 기회
+  const usedUp = (k,id) => k==="pass" && !!store(k)[id] && store(k)[id].attempts.length>=PASS_MAX;
+  const isDone = (k,id) => !!(store(k)[id] && store(k)[id].done) || usedUp(k,id);
   const best = (k,id) => { const r=store(k)[id]; return r && r.attempts.length ? Math.max(...r.attempts.map(a=>a.count)) : null; };
   const ptsOf = (k,id) => { const b=best(k,id); if(b!=null) return scoreRow(k,b).pts; return store(k)[id]?.absent ? KIND[k].absent : null; };
   function cleanup(k,id){ const r=store(k)[id]; if(r && !r.attempts.length && !r.absent && !r.done) delete store(k)[id]; }
   function recLabel(k,id){
     const r=store(k)[id], parts=[];
-    if(r && r.done) parts.push("평가 완료");
+    if(r && r.done) parts.push("평가 완료"); else if(usedUp(k,id)) parts.push(PASS_MAX+"회 완료");
     const b=best(k,id);
-    if(b!=null) parts.push("최고 "+b+"개 · "+scoreRow(k,b).pts+"점"+(r.attempts.length>1?" · "+r.attempts.length+"회":""));
+    if(b!=null) parts.push("최고 "+b+"개 · "+scoreRow(k,b).pts+"점"+(k==="pass" ? " · "+r.attempts.length+"/"+PASS_MAX+"회" : (r.attempts.length>1?" · "+r.attempts.length+"회":"")));
     else if(r && r.absent) parts.push("미참여 · "+KIND[k].absent+"점");
-    else parts.push("미측정");
+    else parts.push(k==="pass" ? "미측정 · 기회 "+PASS_MAX+"회" : "미측정");
     return parts.join(" · ");
   }
 
@@ -635,7 +637,8 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     saveBtn.disabled = saveDoneBtn.disabled = ids.length===0;
     saveBtn.textContent = ids.length ? ids.map(nameOf).join(", ")+" "+count+"개 저장" : "기록할 학생이 없어요";
     saveDoneBtn.textContent = ids.length ? "저장하고 평가 완료" : "모두 도우미예요";
-    saveNote.textContent = helpers.length ? helpers.map(nameOf).join(", ")+"은(는) 도우미라 기록하지 않아요" : "";
+    const lastTry=ids.filter(id=>(store("pass")[id]?.attempts.length||0)===PASS_MAX-1);
+    saveNote.textContent = [lastTry.length ? lastTry.map(nameOf).join(", ")+"은(는) 이번이 마지막("+PASS_MAX+"회째) 기회예요" : "", helpers.length ? helpers.map(nameOf).join(", ")+"은(는) 도우미라 기록하지 않아요" : ""].filter(Boolean).join(" · ");
     $("bigBtn").hidden = state!=="done";
   }
   function renderState(){
@@ -660,7 +663,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       if(st){ b.textContent=st.no+"번 "+st.name; sm.textContent=recLabel("pass",id); }
       else { b.textContent="학생 선택"; sm.textContent="눌러서 고르기"; }
       role.disabled = !st || isDone("pass",id);
-      role.textContent = !st ? "기록함" : isDone("pass",id) ? "도우미 · 평가 완료" : helper ? "도우미 (눌러서 기록함으로)" : "기록함 (눌러서 도우미로)";
+      role.textContent = !st ? "기록함" : isDone("pass",id) ? (store("pass")[id]?.done ? "도우미 · 평가 완료" : "도우미 · "+PASS_MAX+"회 모두 사용") : helper ? "도우미 (눌러서 기록함으로)" : "기록함 (눌러서 도우미로)";
     });
     renderSave();
   }
@@ -729,7 +732,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       const r=recOf("pass",id);
       r.attempts.push({count, at:Date.now(), partner}); r.absent=false;
       if(markDone) r.done=true;
-      lines.push(nameOf(id)+" "+r.attempts.length+"회차 저장 (최고 "+best("pass",id)+"개)");
+      lines.push(nameOf(id)+" "+r.attempts.length+"회차 저장 (최고 "+best("pass",id)+"개"+(r.attempts.length>=PASS_MAX?", "+PASS_MAX+"회 모두 사용":", 남은 기회 "+(PASS_MAX-r.attempts.length)+"회")+")");
     });
     saveDB(); reset();
     msg.textContent = storageOK ? fmtTime(Date.now())+" 저장 · "+lines.join(" · ")+(markDone?" · 평가 완료":"") : "이 브라우저에서는 저장이 안 돼요. 기록을 따로 적어 두세요.";
@@ -904,7 +907,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     const sp=document.createElement("span"); sp.className="ct"+(isDone(k,id)?" fin":"");
     const b0=best(k,id), r=store(k)[id], p=ptsOf(k,id);
     const b=document.createElement("b"); const sm=document.createElement("small");
-    if(b0!=null){ b.textContent=b0+"개"; sm.textContent=p+"점"+(r.attempts.length>1?" · "+r.attempts.length+"회":""); }
+    if(b0!=null){ b.textContent=b0+"개"; sm.textContent=p+"점"+(k==="pass" ? " · "+r.attempts.length+"/"+PASS_MAX+"회" : (r.attempts.length>1?" · "+r.attempts.length+"회":"")); }
     else if(r && r.absent){ b.textContent="미참여"; sm.textContent=p+"점"; }
     else { b.textContent="−"; }
     sp.append(b,sm); return sp;
@@ -987,6 +990,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   $("editAdd").addEventListener("click",()=>{
     const n=parseInt(editCount.value,10);
     if(!Number.isFinite(n)||n<0||n>KIND[editKind].max){ editCount.focus(); return; }
+    if(editKind==="pass" && usedUp("pass",editId)){ $("editBest").textContent="패스&캐치는 "+PASS_MAX+"회까지만 기록할 수 있어요. 잘못된 회차를 지운 뒤 추가하세요."; return; }
     const r=recOf(editKind,editId); r.attempts.push({count:n, at:Date.now()}); r.absent=false;
     editCount.value=""; saveDB(); renderEdit(); renderAllRec();
   });
