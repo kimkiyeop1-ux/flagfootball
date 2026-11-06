@@ -64,6 +64,13 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(-
 .role li{margin:4px 0}
 .crit{display:inline-block;margin-left:6px;padding:0 8px;border-radius:999px;background:var(--turf);color:var(--chalk);font-size:.78rem;font-weight:700;line-height:1.7;vertical-align:2px;white-space:nowrap}
 .mission h2{font-size:1.2rem}
+.shp{width:1.15em;height:1.15em;flex:none;color:var(--accent-ink);vertical-align:-.18em}
+.pk{display:inline-flex;align-items:center;gap:4px;justify-content:center}
+.seg button[aria-pressed="true"] .shp{color:var(--chalk)}
+.role h3 .shp{width:1.3em;height:1.3em}
+.shn{font-weight:400;color:var(--muted);font-size:.85rem}
+.legend.shapes{color:var(--ink);font-size:.9rem;gap:6px 16px}
+.legend.shapes b{font-weight:700}
 .posPick{margin:0 0 14px;padding:10px;border-radius:12px;background:var(--soft)}
 .posPick .seg button{font-size:1rem;padding:9px 4px}
 .fold summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:700;color:var(--accent-ink);font-size:1.05rem}
@@ -126,6 +133,7 @@ footer{color:var(--muted);font-size:.8rem;margin-top:20px;text-align:center}
       <div class="board">
         <div class="fieldbox"><svg id="field" viewBox="-190 -138 380 212" role="img" aria-label="작전판"></svg></div>
         <div class="legend"><span><i class="lg ball"></i>공 받는 사람</span><span><i class="lg pl"></i>조원</span><span><i class="lg ex"></i>5명 조일 때만 추가</span><span><i class="dot red"></i>빨간 콘(수비 자리)</span><span><i class="dot green"></i>초록 콘(지나갈 곳)</span></div>
+        <div class="legend shapes" id="shapeLegend"></div>
         <div class="cap" id="cap" aria-live="polite"></div>
         <div class="ctrl">
           <button id="playBtn" type="button">▶ 재생</button>
@@ -207,6 +215,16 @@ var PLAYS=[
  vids:[["Mastering the Fake Handoff (Flag Football)","플래그 풋볼 페이크 핸드오프","https://www.youtube.com/watch?v=cxVfmHxftT4"],["Football Pro Tips: Practicing the Play-Action Pass","페이크 후 패스 연습","https://www.youtube.com/watch?v=_cfZuotaPnU"]]}
 ];
 var CIRC=["","①","②","③","④","⑤"];
+var SHAPE_NAME={C:"네모",QB:"동그라미",RB:"마름모",W1:"십자",W2:"별"};
+function shapeSpec(id){
+  if(id==="QB")return ["circle",{r:1}];
+  if(id==="C")return ["rect",{x:-0.88,y:-0.88,width:1.76,height:1.76,rx:0.18}];
+  if(id==="RB")return ["polygon",{points:"0,-1.25 1.25,0 0,1.25 -1.25,0"}];
+  if(id==="W1"){var a=0.5,b=1.15;return ["polygon",{points:[[-a,-b],[a,-b],[a,-a],[b,-a],[b,a],[a,a],[a,b],[-a,b],[-a,a],[-b,a],[-b,-a],[-a,-a]].map(function(q){return q.join(",");}).join(" ")}];}
+  var pts=[];for(var i=0;i<10;i++){var r=i%2?0.72:1.38,ang=-Math.PI/2+i*Math.PI/5;pts.push((r*Math.cos(ang)).toFixed(3)+","+(r*Math.sin(ang)+0.1).toFixed(3));}
+  return ["polygon",{points:pts.join(" ")}];
+}
+function shapeIcon(id){var sp=shapeSpec(id),a="";for(var k in sp[1])a+=" "+k+'="'+sp[1][k]+'"';return '<svg class="shp" viewBox="-1.5 -1.5 3 3" aria-hidden="true"><'+sp[0]+a+' fill="currentColor"/></svg>';}
 var COMMON_VID=["Flag Football Receiver Routes","직진·대각선·바깥 꺾기 등 기본 길 모음","https://www.youtube.com/watch?v=VfEdroKoFHI"];
 
 function lerpKeys(k,t){
@@ -271,11 +289,13 @@ function drawStatic(){
     var hot=id===p.ballTo,ex=id===p.extra;
     if(ex&&!st.five)return;
     var g=el("g",{"data-id":id},layers.players);
-    if(ex){el("circle",{r:17,fill:"none",stroke:EXTRA,"stroke-width":1.8,"stroke-dasharray":"4 3"},g);
-      el("rect",{x:-11,y:-30,width:22,height:11,rx:5.5,fill:EXTRA},g);
-      el("text",{"text-anchor":"middle","dominant-baseline":"central",y:-24.3,"font-size":7.5,"font-weight":700,fill:EXTRA_INK,"font-family":"var(--f-body)"},g,"+1");}
-    el("circle",{r:12.5,fill:ex?EXTRA:(hot?"#F2C230":"#F7F7F2"),stroke:ex?EXTRA_INK:"#153F29","stroke-width":1.5},g);
-    el("text",{"text-anchor":"middle","dominant-baseline":"central",y:.5,"font-size":id.length>1?10:11,"font-weight":700,fill:ex?EXTRA_INK:(hot?"#3A2C00":"#13261C"),"font-family":"var(--f-body)"},g,id);
+    var sp=shapeSpec(id),R0=id==="W2"?14:13.5;
+    if(ex){var ring=el("g",{transform:"scale("+(R0+5)+")"},g);var ra={};for(var k in sp[1])ra[k]=sp[1][k];ra.fill="none";ra.stroke=EXTRA;ra["stroke-width"]=1.8;ra["stroke-dasharray"]="4 3";ra["vector-effect"]="non-scaling-stroke";el(sp[0],ra,ring);
+      el("rect",{x:-11,y:-38,width:22,height:11,rx:5.5,fill:EXTRA},g);
+      el("text",{"text-anchor":"middle","dominant-baseline":"central",y:-32.3,"font-size":7.5,"font-weight":700,fill:EXTRA_INK,"font-family":"var(--f-body)"},g,"+1");}
+    var body=el("g",{transform:"scale("+R0+")"},g),ba={};for(var k2 in sp[1])ba[k2]=sp[1][k2];
+    ba.fill=ex?EXTRA:(hot?"#F2C230":"#F7F7F2");ba.stroke=ex?EXTRA_INK:"#153F29";ba["stroke-width"]=1.5;ba["stroke-linejoin"]="round";ba["vector-effect"]="non-scaling-stroke";el(sp[0],ba,body);
+    el("text",{"text-anchor":"middle","dominant-baseline":"central",y:id==="W2"?2:.5,"font-size":id==="W2"?8.5:10,"font-weight":700,fill:ex?EXTRA_INK:(hot?"#3A2C00":"#13261C"),"font-family":"var(--f-body)"},g,id);
     players[id]=g;
   });
   ball=el("ellipse",{rx:5.2,ry:3.4,fill:"var(--ball)",stroke:"#F7F7F2","stroke-width":1},field);
@@ -331,12 +351,12 @@ function renderPanels(){
   var fb=$("teamSeg").children[1];if(fb)fb.classList.add("five");
   var ORD=ORDER.filter(function(id){return st.five||id!==p.extra;});
   if(st.pos&&ORD.indexOf(st.pos)<0)st.pos=null;
-  var posItems=[["전체",""]].concat(ORD.map(function(id){return [id+(id===p.extra?" +1":""),""];}));
+  var posItems=[["전체",""]].concat(ORD.map(function(id){return ['<span class="pk">'+shapeIcon(id)+id+(id===p.extra?" +1":"")+"</span>",""];}));
   segButtons($("posSeg"),posItems,st.pos?ORD.indexOf(st.pos)+1:0,function(i){st.pos=i===0?null:ORD[i-1];renderPanels();drawStatic();render();});
   var ids=st.pos?[st.pos]:ORD,h="";
   ids.forEach(function(id){
     var ex=id===p.extra,tags="";if(id===p.ballTo)tags+=' <span class="tag ball">공 받는 사람</span>';if(ex)tags+=' <span class="tag extra">+1 · 5명 조일 때만</span>';
-    h+='<div class="role'+(ex?" extra":"")+'"><h3>'+id+" · "+NAME[id]+tags+"</h3><ol>"+p.roles[id].map(function(x){var q=x.split("|"),pills=q[1]?q[1].split(",").map(function(n){return '<span class="crit">성공 '+CIRC[+n]+"</span>";}).join(""):"";return "<li>"+esc(q[0])+pills+"</li>";}).join("")+"</ol></div>";
+    h+='<div class="role'+(ex?" extra":"")+'"><h3>'+shapeIcon(id)+id+" · "+NAME[id]+" <span class=\"shn\">("+SHAPE_NAME[id]+")</span>"+tags+"</h3><ol>"+p.roles[id].map(function(x){var q=x.split("|"),pills=q[1]?q[1].split(",").map(function(n){return '<span class="crit">성공 '+CIRC[+n]+"</span>";}).join(""):"";return "<li>"+esc(q[0])+pills+"</li>";}).join("")+"</ol></div>";
   });
   if(!st.pos)h+='<p class="hint" style="margin:0">'+(st.five?'하늘색 점선 학생(+1)은 5명 조일 때만 들어가요. 4명 조는 작전판 위의 "4명 조"를 누르세요.':'4명 조 화면이에요. 5명 조는 작전판 위의 "5명 조"를 누르면 하늘색 +1 학생이 추가돼요.')+' 위에서 내 포지션을 누르면 작전판에서 나만 진하게 보여요.</p>';
   $("roles").innerHTML=h;
@@ -357,7 +377,8 @@ function renderPanels(){
   var vv=p.vids.concat([COMMON_VID]);
   $("vids").innerHTML=vv.map(function(x){return '<a href="'+x[2]+'" target="_blank" rel="noopener">'+esc(x[0])+"<small>"+esc(x[1])+" · 유튜브</small></a>";}).join("");
 }
-function refreshAll(){renderPanels();drawStatic();render();}
+function shapeLegend(){$("shapeLegend").innerHTML=ORDER.map(function(id){return "<span>"+shapeIcon(id)+"<b>"+id+"</b> "+SHAPE_NAME[id]+"</span>";}).join("");}
+function refreshAll(){shapeLegend();renderPanels();drawStatic();render();}
 
 $("playBtn").onclick=function(){st.run?stop():play();};
 $("resetBtn").onclick=function(){stop();st.t=0;render();};
