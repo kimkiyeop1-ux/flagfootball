@@ -59,9 +59,12 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(-
 .side{display:grid;gap:16px;min-width:0}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;min-width:0}
 .roles{display:grid;gap:12px}
-.role h3{margin:0 0 4px;font-size:.98rem;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.role ol{margin:0;padding-left:1.3em}
-.role li{margin:2px 0}
+.role h3{margin:0 0 6px;font-size:1.15rem;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.role ol{margin:0;padding-left:1.4em;font-size:1.1rem;line-height:1.6}
+.role li{margin:4px 0}
+.crit{display:inline-block;margin-left:6px;padding:0 8px;border-radius:999px;background:var(--turf);color:var(--chalk);font-size:.78rem;font-weight:700;line-height:1.7;vertical-align:2px;white-space:nowrap}
+.mission h2{font-size:1.2rem}
+.bridge{margin:16px 0 12px;padding:8px;border-radius:10px;background:var(--soft);color:var(--accent-ink);text-align:center;font-weight:700;font-size:.95rem}
 .tag{font-size:.72rem;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--soft);color:var(--muted)}
 .tag.ball{background:var(--flag);color:var(--flag-ink)}
 .tag.extra{background:var(--extra-bg);color:var(--extra-text);border:1.5px dashed var(--extra)}
@@ -85,9 +88,12 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(-
 .dot.pl{border-radius:50%;background:var(--chalk);border:2px solid var(--turf-deep)}
 .sub{font-size:.85rem;font-weight:700;color:var(--muted);margin:12px 0 6px}
 .sub:first-of-type{margin-top:0}
-.check{margin:0;padding:0;list-style:none;display:grid;gap:8px}
-.check li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px}
-.check li::before{content:"";width:18px;height:18px;margin-top:3px;border:2px solid var(--turf);border-radius:5px}
+.check{margin:0;padding:0;list-style:none;display:grid;gap:10px;font-size:1.1rem;line-height:1.55}
+.check li{display:grid;grid-template-columns:32px minmax(0,1fr);gap:10px;align-items:start;transition:opacity .2s}
+.check .num{width:30px;height:30px;border-radius:50%;background:var(--turf);color:var(--chalk);display:grid;place-items:center;font-weight:700;font-size:.95rem}
+.check li.mine span:last-child{font-weight:700}
+.check li.mine .num{background:var(--flag);color:var(--flag-ink)}
+.check li.off{opacity:.4}
 .vids{display:grid;gap:8px}
 .vids a{display:block;padding:10px 12px;border-radius:12px;background:var(--soft);color:var(--ink);text-decoration:none;font-weight:500}
 .vids a small{display:block;color:var(--muted);font-weight:400}
@@ -124,13 +130,16 @@ footer{color:var(--muted);font-size:.8rem;margin-top:20px;text-align:center}
           <div class="seg small" id="posSeg" role="group" aria-label="포지션 고르기"></div>
         </div>
       </div>
+      <section class="card" aria-labelledby="hVid"><h2 id="hVid">참고 영상</h2><div class="vids" id="vids"></div><p class="hint">영상은 수비가 있는 실제 경기라 우리 작전과 조금 달라요. 동작만 참고하세요.</p></section>
     </section>
 
     <aside class="side">
-      <section class="card" aria-labelledby="hRole"><h2 id="hRole">내가 할 일</h2><div class="roles" id="roles"></div></section>
+      <section class="card mission" aria-labelledby="hRole">
+        <h2 id="hRole">내가 할 일</h2><div class="roles" id="roles"></div>
+        <div class="bridge" aria-hidden="true">↓ 내가 할 일을 잘 해내면 ↓</div>
+        <h2 id="hCheck">이렇게 하면 성공</h2><ul class="check" id="check"></ul><p class="hint" id="checkHint">하나라도 못 지키면 그 작전은 실패예요.</p>
+      </section>
       <section class="card" aria-labelledby="hCone"><h2 id="hCone">콘·출발 위치</h2><div id="cones"></div><p class="hint">기준점: 출발선 한가운데(센터 바로 앞). 거리는 미터(m)예요.</p></section>
-      <section class="card" aria-labelledby="hCheck"><h2 id="hCheck">이렇게 하면 성공</h2><ul class="check" id="check"></ul><p class="hint">하나라도 못 지키면 그 작전은 실패예요.</p></section>
-      <section class="card" aria-labelledby="hVid"><h2 id="hVid">참고 영상</h2><div class="vids" id="vids"></div><p class="hint">영상은 수비가 있는 실제 경기라 우리 작전과 조금 달라요. 동작만 참고하세요.</p></section>
     </aside>
   </div>
   <footer>이 앱은 아무 정보도 저장하거나 보내지 않아요.</footer>
@@ -154,11 +163,11 @@ var PLAYS=[
  ev:{type:"hand",to:"RB",at:"h"},
  caps:[[0,"스냅! C가 다리 사이로 QB에게 공을 넘겨요"],[["RB","h"],"핸드오프: QB가 RB에게 공을 손으로 건네요"],[["RB",1],"RB는 빨간 콘 바깥쪽으로 크게 돌아요"],[["RB",2],"앞으로 꺾어서 초록 콘까지 직진!"],["end","모두 초록 콘 통과 → 작전 성공"]],
  special:"RB가 공을 받아 빨간 콘 오른쪽 바깥으로 지나가요",
- roles:{C:["QB에게 스냅해요","앞으로 달려 초록 콘을 지나가요"],
-  QB:["스냅을 받아요","오른쪽으로 반 걸음 돌아 RB에게 공을 손으로 건네요","건넨 뒤 그 자리에 있어요"],
-  RB:["스냅 순간 오른쪽으로 출발해요","QB 옆을 지나가며 두 손으로 배 앞에서 공을 받아요","빨간 콘 바깥쪽(오른쪽)으로 크게 돌아요","앞으로 꺾어 공을 든 채 초록 콘을 지나가요"],
-  W1:["앞으로 곧게 달려 초록 콘을 지나가요"],
-  W2:["스냅과 동시에 앞으로 곧게 달려요","초록 콘을 지나가요"]},
+ roles:{C:["QB에게 스냅해요|1","앞으로 달려 초록 콘을 지나가요|5"],
+  QB:["스냅을 받아요|1","오른쪽으로 반 걸음 돌아 RB에게 공을 손으로 건네요|2,3","건넨 뒤 그 자리에 있어요"],
+  RB:["스냅 순간 오른쪽으로 출발해요","QB 옆을 지나가며 두 손으로 배 앞에서 공을 받아요|3","빨간 콘 바깥쪽(오른쪽)으로 크게 돌아요|4","앞으로 꺾어 공을 든 채 초록 콘을 지나가요|5"],
+  W1:["앞으로 곧게 달려 초록 콘을 지나가요|5"],
+  W2:["스냅과 동시에 앞으로 곧게 달려요","초록 콘을 지나가요|5"]},
  vids:[["Sweep - Flag Football Drill","스윕 작전 연습","https://www.youtube.com/watch?v=eZj_gxpdz8Q"],["Flag Football Handoff Drill For Youth","공 건네주기(핸드오프) 기본","https://www.youtube.com/watch?v=UR7Kxow6_50"]]},
 {no:"②",name:"퀵 슬랜트",level:"보통",ballTo:"W2",extra:"RB",
  red:[[12,7]],green:{C:[0,3],W1:[-10,10],W2:[3,10],RB:[-7,-3]},
@@ -168,11 +177,11 @@ var PLAYS=[
  ev:{type:"pass",to:"W2",at:"c"},
  caps:[[0,"스냅! C가 QB에게 공을 넘겨요"],[0.35,"QB는 두세 걸음 뒤로 물러나 W2를 봐요"],[["W2","cut"],"W2가 안쪽 대각선으로 꺾어요"],["rel","패스! W2가 달려갈 앞쪽으로 던져요"],[["W2","c"],"캐치! 공을 든 채 초록 콘으로"],["end","모두 초록 콘 통과 → 작전 성공"]],
  special:"W2가 빨간 콘 안쪽(가운데 쪽)으로 꺾어서 패스를 받아요",
- roles:{C:["QB에게 스냅해요","앞으로 달려 초록 콘을 지나가요"],
-  QB:["스냅을 받아요","두세 걸음 뒤로 물러나요","W2가 안쪽으로 꺾는 순간, W2가 달려갈 앞쪽으로 패스해요"],
-  W2:["앞으로 곧게 달려요","빨간 콘에 닿기 전에 안쪽 대각선(가운데 쪽)으로 꺾어요","QB를 보며 두 손으로 공을 받아요","공을 든 채 초록 콘을 지나가요"],
-  W1:["앞으로 곧게 달려 초록 콘을 지나가요"],
-  RB:["왼쪽으로 달려 나가요","앞으로 꺾어 초록 콘을 지나가요"]},
+ roles:{C:["QB에게 스냅해요|1","앞으로 달려 초록 콘을 지나가요|5"],
+  QB:["스냅을 받아요|1","두세 걸음 뒤로 물러나요","W2가 안쪽으로 꺾는 순간, W2가 달려갈 앞쪽으로 패스해요|2,3"],
+  W2:["앞으로 곧게 달려요","빨간 콘에 닿기 전에 안쪽 대각선(가운데 쪽)으로 꺾어요|4","QB를 보며 두 손으로 공을 받아요|3","공을 든 채 초록 콘을 지나가요|5"],
+  W1:["앞으로 곧게 달려 초록 콘을 지나가요|5"],
+  RB:["왼쪽으로 달려 나가요","앞으로 꺾어 초록 콘을 지나가요|5"]},
  vids:[["Quick Slant - Flag Football Play","플래그 풋볼 퀵 슬랜트","https://www.youtube.com/watch?v=e74ffKtXOrg"],["How to Run a Quick Slant in Football","대각선으로 꺾는 법","https://www.youtube.com/watch?v=nm4P8RZud7Y"]]},
 {no:"③",name:"페이크 후 아웃 패스",level:"조금 어려움",ballTo:"W1",extra:"W2",
  red:[[-10,8]],green:{C:[0,3],RB:[10,-3],W1:[-16,5],W2:[10,10]},
@@ -183,13 +192,14 @@ var PLAYS=[
  ev:{type:"pass",to:"W1",at:"c"},
  caps:[[0,"스냅! C가 QB에게 공을 넘겨요"],[["RB","f"],"페이크! QB가 RB에게 건네는 척해요. 공은 QB가 그대로 가져요"],[["W1","cut"],"RB는 공이 있는 척 오른쪽으로 · W1은 빨간 콘 앞에서 바깥으로 꺾어요"],["rel","패스! 몸을 왼쪽으로 돌려 W1에게"],[["W1","c"],"캐치! 공을 든 채 초록 콘으로"],["end","모두 초록 콘 통과 → 작전 성공"]],
  special:"QB가 페이크한 뒤, W1이 빨간 콘 앞에서 바깥쪽으로 꺾어 패스를 받아요",
- roles:{C:["QB에게 스냅해요","앞으로 달려 초록 콘을 지나가요"],
-  QB:["스냅을 받아요","RB에게 공을 건네는 척해요 (공은 내가 계속 들고 있어요)","몸을 왼쪽으로 돌려 W1에게 패스해요"],
-  RB:["QB 앞을 지나가며 공을 받는 척 배를 감싸요","공을 가진 것처럼 오른쪽으로 달려 초록 콘을 지나가요"],
-  W1:["앞으로 곧게 달려요","빨간 콘 앞에서 바깥쪽(왼쪽 옆줄 방향)으로 꺾어요","QB 쪽을 보며 두 손으로 공을 받아요","공을 든 채 초록 콘을 지나가요"],
-  W2:["앞으로 곧게 달려 초록 콘을 지나가요"]},
+ roles:{C:["QB에게 스냅해요|1","앞으로 달려 초록 콘을 지나가요|5"],
+  QB:["스냅을 받아요|1","RB에게 공을 건네는 척해요 (공은 내가 계속 들고 있어요)","몸을 왼쪽으로 돌려 W1에게 패스해요|2,3"],
+  RB:["QB 앞을 지나가며 공을 받는 척 배를 감싸요","공을 가진 것처럼 오른쪽으로 달려 초록 콘을 지나가요|5"],
+  W1:["앞으로 곧게 달려요","빨간 콘 앞에서 바깥쪽(왼쪽 옆줄 방향)으로 꺾어요|4","QB 쪽을 보며 두 손으로 공을 받아요|3","공을 든 채 초록 콘을 지나가요|5"],
+  W2:["앞으로 곧게 달려 초록 콘을 지나가요|5"]},
  vids:[["Mastering the Fake Handoff (Flag Football)","플래그 풋볼 페이크 핸드오프","https://www.youtube.com/watch?v=cxVfmHxftT4"],["Football Pro Tips: Practicing the Play-Action Pass","페이크 후 패스 연습","https://www.youtube.com/watch?v=_cfZuotaPnU"]]}
 ];
+var CIRC=["","①","②","③","④","⑤"];
 var COMMON_VID=["Flag Football Receiver Routes","직진·대각선·바깥 꺾기 등 기본 길 모음","https://www.youtube.com/watch?v=VfEdroKoFHI"];
 
 function lerpKeys(k,t){
@@ -319,7 +329,7 @@ function renderPanels(){
   var ids=st.pos?[st.pos]:ORD,h="";
   ids.forEach(function(id){
     var ex=id===p.extra,tags="";if(id===p.ballTo)tags+=' <span class="tag ball">공 받는 사람</span>';if(ex)tags+=' <span class="tag extra">+1 · 5명 조일 때만</span>';
-    h+='<div class="role'+(ex?" extra":"")+'"><h3>'+id+" · "+NAME[id]+tags+"</h3><ol>"+p.roles[id].map(function(x){return "<li>"+esc(x)+"</li>";}).join("")+"</ol></div>";
+    h+='<div class="role'+(ex?" extra":"")+'"><h3>'+id+" · "+NAME[id]+tags+"</h3><ol>"+p.roles[id].map(function(x){var q=x.split("|"),pills=q[1]?q[1].split(",").map(function(n){return '<span class="crit">성공 '+CIRC[+n]+"</span>";}).join(""):"";return "<li>"+esc(q[0])+pills+"</li>";}).join("")+"</ol></div>";
   });
   if(!st.pos)h+='<p class="hint" style="margin:0">'+(st.five?'하늘색 점선 학생(+1)은 5명 조일 때만 들어가요. 4명 조는 위에서 "4명 조"를 누르세요.':'4명 조 화면이에요. 5명 조는 위에서 "5명 조"를 누르면 하늘색 +1 학생이 추가돼요.')+' 내 포지션을 누르면 나만 진하게 보여요.</p>';
   $("roles").innerHTML=h;
@@ -333,8 +343,10 @@ function renderPanels(){
   p.red.forEach(function(r){c+='<li><span class="dot red"></span><b>빨간</b><span>'+fmtPos(r,s)+" (수비 자리)</span></li>";});
   ORDER.forEach(function(id){var g=p.green[id],ex=id===p.extra;if(!g||(ex&&!st.five))return;c+='<li'+(ex?' class="ex"':'')+'><span class="dot green"></span><b>'+id+"</b><span>"+fmtPos(g,s)+(ex?' <span class="tag extra">+1</span>':"")+"</span></li>";});
   c+="</ul>";$("cones").innerHTML=c;
-  var ck=COMMON.concat([p.special,COMMON2]);
-  $("check").innerHTML=ck.map(function(x){return "<li><span>"+esc(x)+"</span></li>";}).join("");
+  var ck=COMMON.concat([p.special,COMMON2]),mine={};
+  if(st.pos)p.roles[st.pos].forEach(function(x){var q=x.split("|");if(q[1])q[1].split(",").forEach(function(n){mine[+n]=1;});});
+  $("check").innerHTML=ck.map(function(x,i){var n=i+1,cls=st.pos?(mine[n]?"mine":"off"):"";return '<li class="'+cls+'"><span class="num">'+n+"</span><span>"+esc(x)+"</span></li>";}).join("");
+  $("checkHint").textContent=st.pos?(st.pos+"와(과) 관련된 기준이 노란 번호로 진하게 보여요. 흐린 기준은 다른 조원이 맡지만, 하나라도 못 지키면 조 전체가 실패예요."):"내가 할 일 옆의 '성공 ①' 표시가 아래 기준 번호와 연결돼요. 하나라도 못 지키면 그 작전은 실패예요.";
   var vv=p.vids.concat([COMMON_VID]);
   $("vids").innerHTML=vv.map(function(x){return '<a href="'+x[2]+'" target="_blank" rel="noopener">'+esc(x[0])+"<small>"+esc(x[1])+" · 유튜브</small></a>";}).join("");
 }
