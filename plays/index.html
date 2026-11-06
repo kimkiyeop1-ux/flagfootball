@@ -93,6 +93,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(-
 .rows b{font-weight:700}
 .dot{width:14px;height:14px;display:inline-block}
 .dot.red{background:var(--cone-red);clip-path:polygon(50% 0,100% 100%,0 100%)}
+.dot.disc{border-radius:50%;background:var(--cone-green);border:2px solid var(--turf-deep);width:12px;height:12px}
 .dot.green{background:var(--cone-green);clip-path:polygon(50% 0,100% 100%,0 100%);outline:0}
 .dot.pl{border-radius:50%;background:var(--chalk);border:2px solid var(--turf-deep)}
 .sub{font-size:.85rem;font-weight:700;color:var(--muted);margin:12px 0 6px}
@@ -114,18 +115,17 @@ footer{color:var(--muted);font-size:.8rem;margin-top:20px;text-align:center}
 <body>
 <header class="top"><div class="wrap">
   <img src="icon-192.png" alt="">
-  <div><h1>플래그 풋볼 작전판</h1><p>2학년 공격 전략 · 샘플 작전 3개 · 수비 대신 콘</p></div>
+  <div><h1>플래그 풋볼 작전판</h1><p>2학년 공격 전략 · 샘플 작전 3개 · 빨간 콘에서 꺾고 접시콘 사이로 도착</p></div>
 </div></header>
 
 <main class="wrap">
   <div class="layout">
     <section aria-label="움직이는 작전판" style="display:grid;gap:12px;min-width:0">
       <div class="seg" id="playSeg" role="group" aria-label="작전 고르기"></div>
-      <div class="seg small" id="venueSeg" role="group" aria-label="장소 고르기"></div>
       <div class="seg small team" id="teamSeg" role="group" aria-label="조 인원 고르기"></div>
       <div class="board">
         <div class="fieldbox"><svg id="field" viewBox="-190 -138 380 212" role="img" aria-label="작전판"></svg></div>
-        <div class="legend"><span><i class="lg ball"></i>공 받는 사람</span><span><i class="lg pl"></i>조원</span><span><i class="lg ex"></i>5명 조일 때만 추가</span><span><i class="dot red"></i>빨간 콘(수비 자리)</span><span><i class="dot green"></i>초록 콘(지나갈 곳)</span></div>
+        <div class="legend"><span><i class="lg ball"></i>공 받는 사람</span><span><i class="lg pl"></i>조원</span><span><i class="lg ex"></i>5명 조일 때만 추가</span><span><i class="dot red"></i>빨간 콘(꺾는 지점)</span><span><i class="dot disc"></i><i class="dot disc"></i>접시콘 2개(도착 라인)</span></div>
         <div class="cap" id="cap" aria-live="polite"></div>
         <div class="ctrl">
           <button id="playBtn" type="button">▶ 재생</button>
@@ -146,7 +146,7 @@ footer{color:var(--muted);font-size:.8rem;margin-top:20px;text-align:center}
         <div class="bridge" aria-hidden="true">↓ 내가 할 일을 잘 해내면 ↓</div>
         <h2 id="hCheck">이렇게 하면 성공</h2><ul class="check" id="check"></ul><p class="hint" id="checkHint">하나라도 못 지키면 그 작전은 실패예요.</p>
       </section>
-      <details class="card fold" id="coneFold"><summary><span>콘·출발 위치</span><small>눌러서 펼치기</small></summary><div id="cones"></div><p class="hint">기준점: 출발선 한가운데(센터 바로 앞). 거리는 미터(m)예요.</p></details>
+      <details class="card fold" id="coneFold"><summary><span>콘·출발 위치</span><small>눌러서 펼치기</small></summary><div class="seg small" id="venueSeg" role="group" aria-label="장소 고르기" style="margin-bottom:10px"></div><div id="cones"></div><p class="hint">기준점: 출발선 한가운데(센터 바로 앞). 거리는 미터(m)예요.</p></details>
     </aside>
   </div>
   <footer>이 앱은 아무 정보도 저장하거나 보내지 않아요.</footer>
@@ -160,50 +160,50 @@ var ORDER=["C","QB","RB","W1","W2"];
 var NAME={C:"센터",QB:"쿼터백",RB:"러닝백",W1:"왼쪽 리시버",W2:"오른쪽 리시버"};
 var VENUES=[{name:"운동장",s:1,size:"약 35 × 20m"},{name:"체육관 전체",s:0.75,size:"농구 코트 1면 · 약 26 × 13m"},{name:"체육관 반",s:0.4,size:"농구 코트 반면 · 약 14 × 7m"}];
 var COMMON=["C가 QB에게 스냅(공 넘기기)을 성공해요","스냅 후 4초 안에 핸드오프나 패스를 해요","정해진 학생에게 공이 가고, 공을 떨어뜨리지 않아요"];
-var COMMON2="조원 모두 자기 초록 콘을 지나가요 (공 가진 학생은 공을 든 채로)";
+var COMMON2="조원 모두 자기 도착 라인(접시콘 2개 사이)을 통과해요 (공 가진 학생은 공을 든 채로)";
 var PLAYS=[
 {no:"①",name:"핸드오프 스윕",level:"쉬움",ballTo:"RB",extra:"W1",
- red:[[13,5]],green:{C:[0,3],W1:[-10,10],W2:[10,10],RB:[16,11]},
+ red:[[14.6,-3.6,"RB"]],green:{C:[0,3],W1:[-10,10],W2:[10,10],RB:[16,11]},
  routes:{C:{d:0.3,v:4,w:[[0,4.5]]},QB:{d:0.3,v:3,w:[[1.2,-3.7]]},
   RB:{d:0.25,v:5,w:[[2,-5,"h"],[15,-5],[16,-3],[16,12.5]]},
   W1:{d:0.2,v:5.5,w:[[-10,11.5]]},W2:{d:0.2,v:5.5,w:[[10,11.5]]}},
  ev:{type:"hand",to:"RB",at:"h"},
- caps:[[0,"스냅! C가 다리 사이로 QB에게 공을 넘겨요"],[["RB","h"],"핸드오프: QB가 RB에게 공을 손으로 건네요"],[["RB",1],"RB는 빨간 콘 바깥쪽으로 크게 돌아요"],[["RB",2],"앞으로 꺾어서 초록 콘까지 직진!"],["end","모두 초록 콘 통과 → 작전 성공"]],
- special:"RB가 공을 받아 빨간 콘 오른쪽 바깥으로 지나가요",
- roles:{C:["QB에게 스냅해요|1","앞으로 달려 초록 콘을 지나가요|5"],
+ caps:[[0,"스냅! C가 다리 사이로 QB에게 공을 넘겨요"],[["RB","h"],"핸드오프: QB가 RB에게 공을 손으로 건네요"],[["RB",1],"RB는 빨간 콘을 바깥쪽으로 돌아요"],[["RB",2],"앞으로 꺾어서 도착 라인까지 직진!"],["end","모두 도착 라인 통과 → 작전 성공"]],
+ special:"RB가 공을 받아 빨간 콘을 바깥쪽으로 돌아 앞으로 꺾어요 (콘을 건드리면 실패)",
+ roles:{C:["QB에게 스냅해요|1","앞으로 달려 도착 라인(접시콘 사이)을 통과해요|5"],
   QB:["스냅을 받아요|1","오른쪽으로 반 걸음 돌아 RB에게 공을 손으로 건네요|2,3","건넨 뒤 그 자리에 있어요"],
-  RB:["스냅 순간 오른쪽으로 출발해요","QB 옆을 지나가며 두 손으로 배 앞에서 공을 받아요|3","빨간 콘 바깥쪽(오른쪽)으로 크게 돌아요|4","앞으로 꺾어 공을 든 채 초록 콘을 지나가요|5"],
-  W1:["앞으로 곧게 달려 초록 콘을 지나가요|5"],
-  W2:["스냅과 동시에 앞으로 곧게 달려요","초록 콘을 지나가요|5"]},
+  RB:["스냅 순간 오른쪽으로 출발해요","QB 옆을 지나가며 두 손으로 배 앞에서 공을 받아요|3","빨간 콘을 바깥쪽으로 돌아요 (콘이 내 왼쪽에 오게)|4","앞으로 꺾어 공을 든 채 도착 라인을 통과해요|5"],
+  W1:["앞으로 곧게 달려 도착 라인을 통과해요|5"],
+  W2:["스냅과 동시에 앞으로 곧게 달려요","도착 라인을 통과해요|5"]},
  vids:[["Sweep - Flag Football Drill","스윕 작전 연습","https://www.youtube.com/watch?v=eZj_gxpdz8Q"],["Flag Football Handoff Drill For Youth","공 건네주기(핸드오프) 기본","https://www.youtube.com/watch?v=UR7Kxow6_50"]]},
 {no:"②",name:"퀵 슬랜트",level:"보통",ballTo:"W2",extra:"RB",
- red:[[12,7]],green:{C:[0,3],W1:[-10,10],W2:[3,10],RB:[-7,-3]},
+ red:[[10,5,"W2"],[-6,-4,"RB"]],green:{C:[0,3],W1:[-10,10],W2:[3,10],RB:[-7,-3]},
  routes:{C:{d:0.3,v:4,w:[[0,4.5]]},QB:{d:0.3,v:3,w:[[0,-4.3]]},
   W2:{d:0.2,v:5,w:[[10,4,"cut"],[5.5,7.6,"c"],[2,11.1]]},
   W1:{d:0.2,v:5.5,w:[[-10,11.5]]},RB:{d:0.3,v:5,w:[[-7,-5],[-7,-1.5]]}},
  ev:{type:"pass",to:"W2",at:"c"},
- caps:[[0,"스냅! C가 QB에게 공을 넘겨요"],[0.35,"QB는 두세 걸음 뒤로 물러나 W2를 봐요"],[["W2","cut"],"W2가 안쪽 대각선으로 꺾어요"],["rel","패스! W2가 달려갈 앞쪽으로 던져요"],[["W2","c"],"캐치! 공을 든 채 초록 콘으로"],["end","모두 초록 콘 통과 → 작전 성공"]],
- special:"W2가 빨간 콘 안쪽(가운데 쪽)으로 꺾어서 패스를 받아요",
- roles:{C:["QB에게 스냅해요|1","앞으로 달려 초록 콘을 지나가요|5"],
+ caps:[[0,"스냅! C가 QB에게 공을 넘겨요"],[0.35,"QB는 두세 걸음 뒤로 물러나 W2를 봐요"],[["W2","cut"],"W2가 빨간 콘 바로 앞에서 안쪽 대각선으로 꺾어요"],["rel","패스! W2가 달려갈 앞쪽으로 던져요"],[["W2","c"],"캐치! 공을 든 채 도착 라인으로"],["end","모두 도착 라인 통과 → 작전 성공"]],
+ special:"W2는 빨간 콘 바로 앞에서 안쪽 대각선으로 꺾고, 5명 조의 RB는 빨간 콘을 돌아 앞으로 꺾어요 (콘을 건드리면 실패)",
+ roles:{C:["QB에게 스냅해요|1","앞으로 달려 도착 라인(접시콘 사이)을 통과해요|5"],
   QB:["스냅을 받아요|1","두세 걸음 뒤로 물러나요","W2가 안쪽으로 꺾는 순간, W2가 달려갈 앞쪽으로 패스해요|2,3"],
-  W2:["앞으로 곧게 달려요","빨간 콘에 닿기 전에 안쪽 대각선(가운데 쪽)으로 꺾어요|4","QB를 보며 두 손으로 공을 받아요|3","공을 든 채 초록 콘을 지나가요|5"],
-  W1:["앞으로 곧게 달려 초록 콘을 지나가요|5"],
-  RB:["왼쪽으로 달려 나가요","앞으로 꺾어 초록 콘을 지나가요|5"]},
+  W2:["앞으로 곧게 달려요","빨간 콘 바로 앞에서 안쪽 대각선(가운데 쪽)으로 꺾어요|4","QB를 보며 두 손으로 공을 받아요|3","공을 든 채 도착 라인을 통과해요|5"],
+  W1:["앞으로 곧게 달려 도착 라인을 통과해요|5"],
+  RB:["왼쪽으로 달려 나가요","빨간 콘을 돌아 앞으로 꺾어요 (콘이 내 오른쪽에 오게)|4","도착 라인을 통과해요|5"]},
  vids:[["Quick Slant - Flag Football Play","플래그 풋볼 퀵 슬랜트","https://www.youtube.com/watch?v=e74ffKtXOrg"],["How to Run a Quick Slant in Football","대각선으로 꺾는 법","https://www.youtube.com/watch?v=nm4P8RZud7Y"]]},
 {no:"③",name:"페이크 후 아웃 패스",level:"조금 어려움",ballTo:"W1",extra:"W2",
- red:[[-10,8]],green:{C:[0,3],RB:[10,-3],W1:[-16,5],W2:[10,10]},
+ red:[[-10,6,"W1"]],green:{C:[0,3],RB:[10,-3],W1:[-16,5],W2:[10,10]},
  routes:{C:{d:0.3,v:4,w:[[0,4.5]]},QB:{d:0.3,v:3,w:[[0.8,-3.5,null,0.35],[-0.6,-3.4]]},
   RB:{d:0.25,v:4.5,w:[[1.3,-4.4,"f"],[11.5,-2.8]]},
   W1:{d:0.2,v:4.5,w:[[-10,5,"cut"],[-13,5,"c"],[-17.5,5]]},
   W2:{d:0.2,v:5.5,w:[[10,11.5]]}},
- ev:{type:"pass",to:"W1",at:"c"},
- caps:[[0,"스냅! C가 QB에게 공을 넘겨요"],[["RB","f"],"페이크! QB가 RB에게 건네는 척해요. 공은 QB가 그대로 가져요"],[["W1","cut"],"RB는 공이 있는 척 오른쪽으로 · W1은 빨간 콘 앞에서 바깥으로 꺾어요"],["rel","패스! 몸을 왼쪽으로 돌려 W1에게"],[["W1","c"],"캐치! 공을 든 채 초록 콘으로"],["end","모두 초록 콘 통과 → 작전 성공"]],
- special:"QB가 페이크한 뒤, W1이 빨간 콘 앞에서 바깥쪽으로 꺾어 패스를 받아요",
- roles:{C:["QB에게 스냅해요|1","앞으로 달려 초록 콘을 지나가요|5"],
-  QB:["스냅을 받아요|1","RB에게 공을 건네는 척해요 (공은 내가 계속 들고 있어요)","몸을 왼쪽으로 돌려 W1에게 패스해요|2,3"],
-  RB:["QB 앞을 지나가며 공을 받는 척 배를 감싸요","공을 가진 것처럼 오른쪽으로 달려 초록 콘을 지나가요|5"],
-  W1:["앞으로 곧게 달려요","빨간 콘 앞에서 바깥쪽(왼쪽 옆줄 방향)으로 꺾어요|4","QB 쪽을 보며 두 손으로 공을 받아요|3","공을 든 채 초록 콘을 지나가요|5"],
-  W2:["앞으로 곧게 달려 초록 콘을 지나가요|5"]},
+ ev:{type:"pass",to:"W1",at:"c"},fake:["RB","f"],
+ caps:[[0,"스냅! C가 QB에게 공을 넘겨요"],[["RB","f"],"페이크 핸드오프: QB가 공을 RB 배 앞까지 내밀었다가 바로 다시 빼요"],[["W1","cut"],"RB는 두 팔로 배를 감싼 자세로 오른쪽으로 · W1은 빨간 콘 바로 앞에서 바깥으로 꺾어요"],["rel","패스! 몸을 왼쪽으로 돌려 W1에게"],[["W1","c"],"캐치! 공을 든 채 도착 라인으로"],["end","모두 도착 라인 통과 → 작전 성공"]],
+ special:"QB가 페이크한 뒤, W1이 빨간 콘 바로 앞에서 바깥쪽으로 꺾어 패스를 받아요 (콘을 건드리면 실패)",
+ roles:{C:["QB에게 스냅해요|1","앞으로 달려 도착 라인(접시콘 사이)을 통과해요|5"],
+  QB:["스냅을 받아요|1","페이크 핸드오프: 두 손으로 공을 RB 배 앞까지 내밀었다가, 놓지 말고 바로 내 배 앞으로 다시 가져와요","몸을 왼쪽으로 돌려 W1에게 패스해요|2,3"],
+  RB:["QB 앞을 지나가며 핸드오프 받을 때처럼 두 팔로 배 앞에 공 받는 자리를 만들어요 (위팔은 위, 아래팔은 아래)","QB가 공을 빼면 두 팔로 배를 감싼 자세 그대로 오른쪽으로 달려 도착 라인을 통과해요|5"],
+  W1:["앞으로 곧게 달려요","빨간 콘 바로 앞에서 바깥쪽(왼쪽 옆줄 방향)으로 꺾어요|4","QB 쪽을 보며 두 손으로 공을 받아요|3","공을 든 채 도착 라인을 통과해요|5"],
+  W2:["앞으로 곧게 달려 도착 라인을 통과해요|5"]},
  vids:[["Mastering the Fake Handoff (Flag Football)","플래그 풋볼 페이크 핸드오프","https://www.youtube.com/watch?v=cxVfmHxftT4"],["Football Pro Tips: Practicing the Play-Action Pass","페이크 후 패스 연습","https://www.youtube.com/watch?v=_cfZuotaPnU"]]}
 ];
 var CIRC=["","①","②","③","④","⑤"];
@@ -225,7 +225,9 @@ function build(p){
   var e=p.ev,T=A[e.to][e.at],B=[[0,0.3,"C","QB",0]],rel,passLine=null;
   if(e.type==="hand"){ rel=T-0.15; B.push([0.3,rel,"QB"],[rel,T,"QB",e.to,0],[T,1e9,e.to]); }
   else{ var dur=0.8; for(var n=0;n<3;n++){var a=at("QB",T-dur),b=at(e.to,T); dur=Math.max(0.45,Math.hypot(a[0]-b[0],a[1]-b[1])/14);} rel=T-dur;
-    B.push([0.3,rel,"QB"],[rel,T,"QB",e.to,dur*1.6],[T,1e9,e.to]); passLine=[at("QB",rel),at(e.to,T)]; }
+    if(p.fake){var Tf=A[p.fake[0]][p.fake[1]];B.push([0.3,Tf-0.25,"QB"],[Tf-0.25,Tf+0.25,"QB",p.fake[0],0,"fake"],[Tf+0.25,rel,"QB"]);}
+    else B.push([0.3,rel,"QB"]);
+    B.push([rel,T,"QB",e.to,dur*1.6],[T,1e9,e.to]); passLine=[at("QB",rel),at(e.to,T)]; }
   return {K:K,A:A,B:B,rel:rel,end:end+0.4,at:at,passLine:passLine};
 }
 PLAYS.forEach(function(p){p.tl=build(p);});
@@ -245,6 +247,13 @@ function fmtPos(pt,s){var x=pt[0]*s,y=pt[1]*s,a=[];
 
 var field=$("field"),layers={},players={},ball,tk=1;
 function cone(g,x,y,color,big){var s=big?1.35:1;el("polygon",{points:(X(x))+","+(Y(y)-9*s)+" "+(X(x)-7.5*s)+","+(Y(y)+6*s)+" "+(X(x)+7.5*s)+","+(Y(y)+6*s),fill:color,stroke:"#153F29","stroke-width":1.2,"stroke-linejoin":"round"},g);}
+function gateEnds(keys,c){
+  var best=null,bd=1e9;
+  for(var i=1;i<keys.length;i++){var a=[keys[i-1][1],keys[i-1][2]],b=[keys[i][1],keys[i][2]],dx=b[0]-a[0],dy=b[1]-a[1],L=dx*dx+dy*dy;if(L<1e-6)continue;
+    var t=Math.max(0,Math.min(1,((c[0]-a[0])*dx+(c[1]-a[1])*dy)/L)),px=a[0]+dx*t-c[0],py=a[1]+dy*t-c[1],d=px*px+py*py;if(d<bd){bd=d;best=[dx,dy];}}
+  var n=Math.hypot(best[0],best[1]),ux=-best[1]/n*0.5,uy=best[0]/n*0.5;
+  return [[c[0]+ux,c[1]+uy],[c[0]-ux,c[1]-uy]];
+}
 function drawStatic(){
   var p=PLAYS[st.pi],tl=p.tl; field.innerHTML="";
   var defs=el("defs",{},field);
@@ -264,8 +273,11 @@ function drawStatic(){
     el("polyline",{"data-id":id,points:pts.map(function(q){return X(q[0])+","+Y(q[1]);}).join(" "),fill:"none",stroke:hot?"#F2C230":(ex?EXTRA:"#F7F7F2"),"stroke-opacity":hot?.85:(ex?.95:.5),"stroke-width":hot?2.6:(ex?2.2:1.6),"stroke-dasharray":ex?"5 3.5":"none","stroke-linecap":"round","stroke-linejoin":"round","marker-end":hot?"url(#ay)":(ex?"url(#ab)":"url(#aw)")},layers.routes);
   });
   if(tl.passLine){var a=tl.passLine[0],b=tl.passLine[1];el("line",{"data-id":"pass",x1:X(a[0]),y1:Y(a[1]),x2:X(b[0]),y2:Y(b[1]),stroke:"#F2C230","stroke-width":1.6,"stroke-dasharray":"2 4","stroke-linecap":"round","stroke-opacity":.9},layers.routes);}
-  p.red.forEach(function(c){cone(layers.cones,c[0],c[1],"var(--cone-red)");});
-  ORDER.forEach(function(id){var c=p.green[id];if(c&&!(id===p.extra&&!st.five)){var g=el("g",{"data-id":id},layers.cones);cone(g,c[0],c[1],"var(--cone-green)",st.pos===id);}});
+  p.red.forEach(function(c){if(c[2]===p.extra&&!st.five)return;var g=el("g",{"data-id":c[2]},layers.cones);cone(g,c[0],c[1],"var(--cone-red)",st.pos===c[2]);});
+  ORDER.forEach(function(id){var c=p.green[id];if(!c||(id===p.extra&&!st.five))return;
+    var e=gateEnds(tl.K[id],c),g=el("g",{"data-id":id},layers.cones),big=st.pos===id;
+    el("line",{x1:X(e[0][0]),y1:Y(e[0][1]),x2:X(e[1][0]),y2:Y(e[1][1]),stroke:"#A6E35A","stroke-width":big?2.4:1.6,"stroke-dasharray":"2 2.5","stroke-opacity":.9},g);
+    e.forEach(function(q){el("circle",{cx:X(q[0]),cy:Y(q[1]),r:big?3.6:3,fill:"var(--cone-green)",stroke:"#153F29","stroke-width":1.2},g);});});
   players={};
   ORDER.forEach(function(id){
     var hot=id===p.ballTo,ex=id===p.extra;
@@ -290,6 +302,7 @@ function ballPos(t){
   for(var i=0;i<tl.B.length;i++){var s=tl.B[i];
     if(t<=s[1]||i===tl.B.length-1){
       if(s.length===3){var q=tl.at(s[2],t);return [q[0]+0.9,q[1]+0.6];}
+      if(s[5]==="fake"){var ff=Math.max(0,Math.min(1,(t-s[0])/(s[1]-s[0]))),qa=tl.at(s[2],t),qb=tl.at(s[3],t),k=0.8*Math.sin(ff*Math.PI);return [qa[0]+0.9+(qb[0]-qa[0])*k,qa[1]+0.6+(qb[1]-qa[1])*k];}
       var f=Math.max(0,Math.min(1,(t-s[0])/(s[1]-s[0]))),a=tl.at(s[2],s[0]),b=tl.at(s[3],s[1]);
       return [a[0]+0.9+(b[0]-a[0])*f, a[1]+0.6+(b[1]-a[1])*f+Math.sin(f*Math.PI)*s[4]];
     }}
@@ -346,9 +359,10 @@ function renderPanels(){
   var fr={RB:"가운데 · 뒤 "+fmtNum(5*s)+"m",W1:"출발선 왼쪽 "+fmtNum(10*s)+"m",W2:"출발선 오른쪽 "+fmtNum(10*s)+"m"};
   ["RB","W1","W2"].forEach(function(id){var ex=id===p.extra;if(ex&&!st.five)return;c+='<li'+(ex?' class="ex"':'')+'><span class="dot '+(ex?"ex":"pl")+'"></span><b>'+id+"</b><span>"+fr[id]+(ex?' <span class="tag extra">+1</span>':"")+"</span></li>";});
   c+="</ul>";
-  c+='<div class="sub">콘</div><ul class="rows">';
-  p.red.forEach(function(r){c+='<li><span class="dot red"></span><b>빨간</b><span>'+fmtPos(r,s)+" (수비 자리)</span></li>";});
-  ORDER.forEach(function(id){var g=p.green[id],ex=id===p.extra;if(!g||(ex&&!st.five))return;c+='<li'+(ex?' class="ex"':'')+'><span class="dot green"></span><b>'+id+"</b><span>"+fmtPos(g,s)+(ex?' <span class="tag extra">+1</span>':"")+"</span></li>";});
+  c+='<div class="sub">빨간 콘 (꺾는 지점)</div><ul class="rows">';
+  p.red.forEach(function(r){var ex=r[2]===p.extra;if(ex&&!st.five)return;c+='<li'+(ex?' class="ex"':'')+'><span class="dot red"></span><b>'+r[2]+"</b><span>"+fmtPos(r,s)+(ex?' <span class="tag extra">+1</span>':"")+"</span></li>";});
+  c+='</ul><div class="sub">도착 라인 (접시콘 2개, 폭 1m) · 아래 위치가 두 콘의 가운데</div><ul class="rows">';
+  ORDER.forEach(function(id){var g=p.green[id],ex=id===p.extra;if(!g||(ex&&!st.five))return;c+='<li'+(ex?' class="ex"':'')+'><span class="dot disc"></span><b>'+id+"</b><span>"+fmtPos(g,s)+(ex?' <span class="tag extra">+1</span>':"")+"</span></li>";});
   c+="</ul>";$("cones").innerHTML=c;
   var ck=COMMON.concat([p.special,COMMON2]),mine={};
   if(st.pos)p.roles[st.pos].forEach(function(x){var q=x.split("|");if(q[1])q[1].split(",").forEach(function(n){mine[+n]=1;});});
