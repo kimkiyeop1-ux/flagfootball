@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>플래그 풋볼 작전판</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#1E5A3A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="작전판">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* 잔디 위 분필 작전판: 위는 경기장, 아래는 내가 할 일·콘 위치·성공 기준. 넓은 화면(TV)에서는 좌우 2단 */
+:root{
+  --turf:#1E5A3A; --turf-deep:#153F29; --field:#1E5A3A; --field-stripe:#22603F;
+  --chalk:#F7F7F2; --flag:#F2C230; --flag-ink:#3A2C00; --cone-red:#E5483B; --cone-green:#A6E35A; --ball:#8A4B26;
+  --ink:#13261C; --muted:#5D6B62; --line:#D7DDD5; --surface:#FFFFFF; --bg:#EEF2EC; --soft:#E2E8E0; --accent-ink:#1E5A3A;
+  --f-display:"Black Han Sans","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --f-body:"Noto Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --field:#174A30; --field-stripe:#1A5034; --ink:#E9EFE9; --muted:#9AAA9F; --line:#2B3B31; --surface:#17241C; --bg:#0D1712; --soft:#1F2E25; --accent-ink:#8FD3A8; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --field:#174A30; --field-stripe:#1A5034; --ink:#E9EFE9; --muted:#9AAA9F; --line:#2B3B31; --surface:#17241C; --bg:#0D1712; --soft:#1F2E25; --accent-ink:#8FD3A8; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:1180px;margin:0 auto;padding-block:0 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{background:var(--turf);color:var(--chalk)}
+header.top .wrap{padding-block:16px 14px;display:flex;align-items:center;gap:12px}
+header.top img{width:40px;height:40px;border-radius:10px;flex:none}
+h1{font-family:var(--f-display);font-weight:400;font-size:1.45rem;margin:0;line-height:1.2;text-wrap:balance}
+header.top p{margin:2px 0 0;font-size:.85rem;opacity:.85}
+h2{font-size:1rem;font-weight:700;margin:0 0 10px;color:var(--accent-ink);letter-spacing:.02em}
+.layout{display:grid;gap:16px;margin-top:14px}
+@media (min-width:960px){.layout{grid-template-columns:minmax(0,3fr) minmax(0,2fr);align-items:start}.side{position:sticky;top:12px}}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{flex:1 1 0;min-width:0;font:inherit;font-size:.95rem;font-weight:500;padding:10px 8px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;line-height:1.25}
+.seg button small{display:block;font-size:.75rem;font-weight:400;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--turf);border-color:var(--turf);color:var(--chalk)}
+.seg button[aria-pressed="true"] small{color:var(--chalk);opacity:.85}
+.seg.small button{padding:7px 6px;font-size:.88rem}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--flag);outline-offset:2px}
+.board{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px;display:grid;gap:10px}
+.fieldbox{border-radius:10px;overflow:hidden;background:var(--field)}
+.fieldbox svg{display:block;width:100%;height:auto}
+.cap{min-height:3.1em;font-size:1.02rem;font-weight:500;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cap .step{font-variant-numeric:tabular-nums;font-size:.8rem;font-weight:700;background:var(--soft);color:var(--accent-ink);padding:2px 8px;border-radius:999px}
+.chip4{font-size:.8rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--flag);color:var(--flag-ink)}
+.ctrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ctrl button{font:inherit;font-weight:700;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);padding:10px 14px;cursor:pointer}
+.ctrl #playBtn{background:var(--flag);border-color:var(--flag);color:var(--flag-ink);min-width:96px}
+.ctrl input[type=range]{flex:1 1 140px;min-width:0;accent-color:var(--turf)}
+.clock{font-variant-numeric:tabular-nums;min-width:3.6em;text-align:right;color:var(--muted);font-weight:500}
+.side{display:grid;gap:16px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 16px;min-width:0}
+.roles{display:grid;gap:12px}
+.role h3{margin:0 0 4px;font-size:.98rem;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.role ol{margin:0;padding-left:1.3em}
+.role li{margin:2px 0}
+.tag{font-size:.72rem;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--soft);color:var(--muted)}
+.tag.ball{background:var(--flag);color:var(--flag-ink)}
+.hint{color:var(--muted);font-size:.88rem;margin:6px 0 0}
+.rows{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.rows li{display:grid;grid-template-columns:auto 3.2em minmax(0,1fr);gap:8px;align-items:center;font-variant-numeric:tabular-nums}
+.rows b{font-weight:700}
+.dot{width:14px;height:14px;display:inline-block}
+.dot.red{background:var(--cone-red);clip-path:polygon(50% 0,100% 100%,0 100%)}
+.dot.green{background:var(--cone-green);clip-path:polygon(50% 0,100% 100%,0 100%);outline:0}
+.dot.pl{border-radius:50%;background:var(--chalk);border:2px solid var(--turf-deep)}
+.sub{font-size:.85rem;font-weight:700;color:var(--muted);margin:12px 0 6px}
+.sub:first-of-type{margin-top:0}
+.check{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.check li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px}
+.check li::before{content:"";width:18px;height:18px;margin-top:3px;border:2px solid var(--turf);border-radius:5px}
+.vids{display:grid;gap:8px}
+.vids a{display:block;padding:10px 12px;border-radius:12px;background:var(--soft);color:var(--ink);text-decoration:none;font-weight:500}
+.vids a small{display:block;color:var(--muted);font-weight:400}
+footer{color:var(--muted);font-size:.8rem;margin-top:20px;text-align:center}
+.pl .dim{opacity:.28}
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <img src="icon-192.png" alt="">
+  <div><h1>플래그 풋볼 작전판</h1><p>2학년 공격 전략 · 샘플 작전 3개 · 수비 대신 콘</p></div>
+</div></header>
+
+<main class="wrap">
+  <div class="layout">
+    <section aria-label="움직이는 작전판" style="display:grid;gap:12px;min-width:0">
+      <div class="seg" id="playSeg" role="group" aria-label="작전 고르기"></div>
+      <div class="seg small" id="venueSeg" role="group" aria-label="장소 고르기"></div>
+      <div class="board">
+        <div class="fieldbox"><svg id="field" viewBox="-190 -138 380 212" role="img" aria-label="작전판"></svg></div>
+        <div class="cap" id="cap" aria-live="polite"></div>
+        <div class="ctrl">
+          <button id="playBtn" type="button">▶ 재생</button>
+          <button id="resetBtn" type="button" aria-label="처음으로">처음</button>
+          <button id="speedBtn" type="button">1배</button>
+          <input id="scrub" type="range" min="0" max="100" value="0" step="1" aria-label="시간 이동">
+          <span class="clock" id="clock">0.0초</span>
+        </div>
+        <div>
+          <div class="sub" style="margin-top:0">내 포지션 골라서 보기</div>
+          <div class="seg small" id="posSeg" role="group" aria-label="포지션 고르기"></div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <section class="card" aria-labelledby="hRole"><h2 id="hRole">내가 할 일</h2><div class="roles" id="roles"></div></section>
+      <section class="card" aria-labelledby="hCone"><h2 id="hCone">콘·출발 위치</h2><div id="cones"></div><p class="hint">기준점: 출발선 한가운데(센터 바로 앞). 거리는 미터(m)예요.</p></section>
+      <section class="card" aria-labelledby="hCheck"><h2 id="hCheck">이렇게 하면 성공</h2><ul class="check" id="check"></ul><p class="hint">하나라도 못 지키면 그 작전은 실패예요.</p></section>
+      <section class="card" aria-labelledby="hVid"><h2 id="hVid">참고 영상</h2><div class="vids" id="vids"></div><p class="hint">영상은 수비가 있는 실제 경기라 우리 작전과 조금 달라요. 동작만 참고하세요.</p></section>
+    </aside>
+  </div>
+  <footer>이 앱은 아무 정보도 저장하거나 보내지 않아요.</footer>
+</main>
+
+<script>
+(function(){
+"use strict";
+var START={C:[0,-0.8],QB:[0,-3],RB:[0,-5],W1:[-10,-0.8],W2:[10,-0.8]};
+var ORDER=["C","QB","RB","W1","W2"];
+var NAME={C:"센터",QB:"쿼터백",RB:"러닝백",W1:"왼쪽 리시버",W2:"오른쪽 리시버"};
+var VENUES=[{name:"운동장",s:1,size:"약 35 × 20m"},{name:"체육관 전체",s:0.75,size:"농구 코트 1면 · 약 26 × 13m"},{name:"체육관 반",s:0.4,size:"농구 코트 반면 · 약 14 × 7m"}];
+var COMMON=["C가 QB에게 스냅(공 넘기기)을 성공해요","스냅 후 4초 안에 핸드오프나 패스를 해요","정해진 학생에게 공이 가고, 공을 떨어뜨리지 않아요"];
+var COMMON2="조원 모두 자기 초록 콘을 지나가요 (공 가진 학생은 공을 든 채로)";
+var PLAYS=[
+{no:"①",name:"핸드오프 스윕",level:"쉬움",ballTo:"RB",extra:"W1",
+ red:[[13,5]],green:{C:[0,3],W1:[-10,10],W2:[10,10],RB:[16,11]},
+ routes:{C:{d:0.3,v:4,w:[[0,4.5]]},QB:{d:0.3,v:3,w:[[1.2,-3.7]]},
+  RB:{d:0.25,v:5,w:[[2,-5,"h"],[15,-5],[16,-3],[16,12.5]]},
+  W1:{d:0.2,v:5.5,w:[[-10,11.5]]},W2:{d:0.2,v:5.5,w:[[10,11.5]]}},
+ ev:{type:"hand",to:"RB",at:"h"},
+ caps:[[0,"스냅! C가 다리 사이로 QB에게 공을 넘겨요"],[["RB","h"],"핸드오프: QB가 RB에게 공을 손으로 건네요"],[["RB",1],"RB는 빨간 콘 바깥쪽으로 크게 돌아요"],[["RB",2],"앞으로 꺾어서 초록 콘까지 직진!"],["end","모두 초록 콘 통과 → 작전 성공"]],
+ special:"RB가 공을 받아 빨간 콘 오른쪽 바깥으로 지나가요",
+ roles:{C:["QB에게 스냅해요","앞으로 달려 초록 콘을 지나가요"],
+  QB:["스냅을 받아요","오른쪽으로 반 걸음 돌아 RB에게 공을 손으로 건네요","건넨 뒤 그 자리에 있어요"],
+  RB:["스냅 순간 오른쪽으로 출발해요","QB 옆을 지나가며 두 손으로 배 앞에서 공을 받아요","빨간 콘 바깥쪽(오른쪽)으로 크게 돌아요","앞으로 꺾어 공을 든 채 초록 콘을 지나가요"],
+  W1:["앞으로 곧게 달려 초록 콘을 지나가요"],
+  W2:["스냅과 동시에 앞으로 곧게 달려요","초록 콘을 지나가요"]},
+ vids:[["Sweep - Flag Football Drill","스윕 작전 연습","https://www.youtube.com/watch?v=eZj_gxpdz8Q"],["Flag Football Handoff Drill For Youth","공 건네주기(핸드오프) 기본","https://www.youtube.com/watch?v=UR7Kxow6_50"]]},
+{no:"②",name:"퀵 슬랜트",level:"보통",ballTo:"W2",extra:"RB",
+ red:[[12,7]],green:{C:[0,3],W1:[-10,10],W2:[3,10],RB:[-7,-3]},
+ routes:{C:{d:0.3,v:4,w:[[0,4.5]]},QB:{d:0.3,v:3,w:[[0,-4.3]]},
+  W2:{d:0.2,v:5,w:[[10,4,"cut"],[5.5,7.6,"c"],[2,11.1]]},
+  W1:{d:0.2,v:5.5,w:[[-10,11.5]]},RB:{d:0.3,v:5,w:[[-7,-5],[-7,-1.5]]}},
+ ev:{type:"pass",to:"W2",at:"c"},
+ caps:[[0,"스냅! C가 QB에게 공을 넘겨요"],[0.35,"QB는 두세 걸음 뒤로 물러나 W2를 봐요"],[["W2","cut"],"W2가 안쪽 대각선으로 꺾어요"],["rel","패스! W2가 달려갈 앞쪽으로 던져요"],[["W2","c"],"캐치! 공을 든 채 초록 콘으로"],["end","모두 초록 콘 통과 → 작전 성공"]],
+ special:"W2가 빨간 콘 안쪽(가운데 쪽)으로 꺾어서 패스를 받아요",
+ roles:{C:["QB에게 스냅해요","앞으로 달려 초록 콘을 지나가요"],
+  QB:["스냅을 받아요","두세 걸음 뒤로 물러나요","W2가 안쪽으로 꺾는 순간, W2가 달려갈 앞쪽으로 패스해요"],
+  W2:["앞으로 곧게 달려요","빨간 콘에 닿기 전에 안쪽 대각선(가운데 쪽)으로 꺾어요","QB를 보며 두 손으로 공을 받아요","공을 든 채 초록 콘을 지나가요"],
+  W1:["앞으로 곧게 달려 초록 콘을 지나가요"],
+  RB:["왼쪽으로 달려 나가요","앞으로 꺾어 초록 콘을 지나가요"]},
+ vids:[["Quick Slant - Flag Football Play","플래그 풋볼 퀵 슬랜트","https://www.youtube.com/watch?v=e74ffKtXOrg"],["How to Run a Quick Slant in Football","대각선으로 꺾는 법","https://www.youtube.com/watch?v=nm4P8RZud7Y"]]},
+{no:"③",name:"페이크 후 아웃 패스",level:"조금 어려움",ballTo:"W1",extra:"W2",
+ red:[[-10,8]],green:{C:[0,3],RB:[10,-3],W1:[-16,5],W2:[10,10]},
+ routes:{C:{d:0.3,v:4,w:[[0,4.5]]},QB:{d:0.3,v:3,w:[[0.8,-3.5,null,0.35],[-0.6,-3.4]]},
+  RB:{d:0.25,v:4.5,w:[[1.3,-4.4,"f"],[11.5,-2.8]]},
+  W1:{d:0.2,v:4.5,w:[[-10,5,"cut"],[-13,5,"c"],[-17.5,5]]},
+  W2:{d:0.2,v:5.5,w:[[10,11.5]]}},
+ ev:{type:"pass",to:"W1",at:"c"},
+ caps:[[0,"스냅! C가 QB에게 공을 넘겨요"],[["RB","f"],"페이크! QB가 RB에게 건네는 척해요. 공은 QB가 그대로 가져요"],[["W1","cut"],"RB는 공이 있는 척 오른쪽으로 · W1은 빨간 콘 앞에서 바깥으로 꺾어요"],["rel","패스! 몸을 왼쪽으로 돌려 W1에게"],[["W1","c"],"캐치! 공을 든 채 초록 콘으로"],["end","모두 초록 콘 통과 → 작전 성공"]],
+ special:"QB가 페이크한 뒤, W1이 빨간 콘 앞에서 바깥쪽으로 꺾어 패스를 받아요",
+ roles:{C:["QB에게 스냅해요","앞으로 달려 초록 콘을 지나가요"],
+  QB:["스냅을 받아요","RB에게 공을 건네는 척해요 (공은 내가 계속 들고 있어요)","몸을 왼쪽으로 돌려 W1에게 패스해요"],
+  RB:["QB 앞을 지나가며 공을 받는 척 배를 감싸요","공을 가진 것처럼 오른쪽으로 달려 초록 콘을 지나가요"],
+  W1:["앞으로 곧게 달려요","빨간 콘 앞에서 바깥쪽(왼쪽 옆줄 방향)으로 꺾어요","QB 쪽을 보며 두 손으로 공을 받아요","공을 든 채 초록 콘을 지나가요"],
+  W2:["앞으로 곧게 달려 초록 콘을 지나가요"]},
+ vids:[["Mastering the Fake Handoff (Flag Football)","플래그 풋볼 페이크 핸드오프","https://www.youtube.com/watch?v=cxVfmHxftT4"],["Football Pro Tips: Practicing the Play-Action Pass","페이크 후 패스 연습","https://www.youtube.com/watch?v=_cfZuotaPnU"]]}
+];
+var COMMON_VID=["Flag Football Receiver Routes","직진·대각선·바깥 꺾기 등 기본 길 모음","https://www.youtube.com/watch?v=VfEdroKoFHI"];
+
+function lerpKeys(k,t){
+  if(t<=k[0][0]) return [k[0][1],k[0][2]];
+  for(var i=1;i<k.length;i++){ if(t<=k[i][0]){var a=k[i-1],b=k[i],f=(b[0]-a[0])>0?(t-a[0])/(b[0]-a[0]):1; return [a[1]+(b[1]-a[1])*f,a[2]+(b[2]-a[2])*f];} }
+  var z=k[k.length-1]; return [z[1],z[2]];
+}
+function build(p){
+  var K={},A={},end=0;
+  ORDER.forEach(function(id){
+    var r=p.routes[id], cur=START[id].slice(), keys=[[0,cur[0],cur[1]]], t=r.d; keys.push([t,cur[0],cur[1]]); A[id]={};
+    r.w.forEach(function(w,i){ t+=Math.hypot(w[0]-cur[0],w[1]-cur[1])/r.v; keys.push([t,w[0],w[1]]); A[id][i]=t; if(w[2]) A[id][w[2]]=t; if(w[3]){t+=w[3];keys.push([t,w[0],w[1]]);} cur=[w[0],w[1]]; });
+    K[id]=keys; end=Math.max(end,t);
+  });
+  var at=function(id,t){return lerpKeys(K[id],t);};
+  var e=p.ev,T=A[e.to][e.at],B=[[0,0.3,"C","QB",0]],rel,passLine=null;
+  if(e.type==="hand"){ rel=T-0.15; B.push([0.3,rel,"QB"],[rel,T,"QB",e.to,0],[T,1e9,e.to]); }
+  else{ var dur=0.8; for(var n=0;n<3;n++){var a=at("QB",T-dur),b=at(e.to,T); dur=Math.max(0.45,Math.hypot(a[0]-b[0],a[1]-b[1])/14);} rel=T-dur;
+    B.push([0.3,rel,"QB"],[rel,T,"QB",e.to,dur*1.6],[T,1e9,e.to]); passLine=[at("QB",rel),at(e.to,T)]; }
+  return {K:K,A:A,B:B,rel:rel,end:end+0.4,at:at,passLine:passLine};
+}
+PLAYS.forEach(function(p){p.tl=build(p);});
+
+var st={pi:0,vi:0,pos:null,t:0,run:false,spd:1,last:0};
+var $=function(id){return document.getElementById(id);};
+var NS="http://www.w3.org/2000/svg";
+function el(n,a,parent,txt){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);if(txt!=null)e.textContent=txt;if(parent)parent.appendChild(e);return e;}
+function X(m){return m*10;} function Y(m){return -m*10;}
+function r5(v){var x=Math.abs(v)*2,f=Math.floor(x),d=x-f,r=d>0.5+1e-9?f+1:(d<0.5-1e-9?f:(f%2===0?f:f+1));return r/2;}
+function fmtNum(v){var r=r5(v);return (r%1===0?r.toFixed(0):r.toFixed(1));}
+function fmtPos(pt,s){var x=pt[0]*s,y=pt[1]*s,a=[];
+  a.push(Math.abs(pt[0])<0.01?"가운데":(x>0?"오른쪽 ":"왼쪽 ")+fmtNum(x)+"m");
+  if(Math.abs(pt[1])>0.01) a.push((y>0?"앞 ":"뒤 ")+fmtNum(y)+"m");
+  return a.join(" · ");}
+
+var field=$("field"),layers={},players={},ball,tk=1;
+function cone(g,x,y,color,big){var s=big?1.35:1;el("polygon",{points:(X(x))+","+(Y(y)-9*s)+" "+(X(x)-7.5*s)+","+(Y(y)+6*s)+" "+(X(x)+7.5*s)+","+(Y(y)+6*s),fill:color,stroke:"#153F29","stroke-width":1.2,"stroke-linejoin":"round"},g);}
+function drawStatic(){
+  var p=PLAYS[st.pi],tl=p.tl; field.innerHTML="";
+  var defs=el("defs",{},field);
+  [["aw","#F7F7F2"],["ay","#F2C230"]].forEach(function(m){var mk=el("marker",{id:m[0],viewBox:"0 0 10 10",refX:"7",refY:"5",markerWidth:"5",markerHeight:"5",orient:"auto-start-reverse"},defs);el("path",{d:"M1 1L8 5L1 9",fill:"none",stroke:m[1],"stroke-width":"1.8","stroke-linecap":"round","stroke-linejoin":"round"},mk);});
+  el("rect",{x:-190,y:-138,width:380,height:212,fill:"var(--field)"},field);
+  for(var i=-5;i<=13;i+=2){el("rect",{x:-190,y:Y(i+1),width:380,height:10,fill:"var(--field-stripe)"},field);}
+  [5,10].forEach(function(m){el("line",{x1:-190,x2:190,y1:Y(m),y2:Y(m),stroke:"#F7F7F2","stroke-opacity":.18,"stroke-width":1},field);});
+  el("line",{x1:-190,x2:190,y1:0,y2:0,stroke:"#F7F7F2","stroke-opacity":.75,"stroke-width":1.6,"stroke-dasharray":"6 4"},field);
+  el("text",{x:-184,y:-4,fill:"#F7F7F2","fill-opacity":.8,"font-size":8.5,"font-family":"var(--f-body)"},field,"출발선");
+  el("text",{x:-184,y:-126,fill:"#F7F7F2","fill-opacity":.8,"font-size":8.5,"font-family":"var(--f-body)"},field,"전진 방향 ↑");
+  layers.routes=el("g",{},field); layers.cones=el("g",{},field); layers.players=el("g",{class:"pl"},field);
+  ORDER.forEach(function(id){
+    var k=tl.K[id],pts=[];k.forEach(function(q){var l=pts[pts.length-1];if(!l||l[0]!==q[1]||l[1]!==q[2])pts.push([q[1],q[2]]);});
+    if(pts.length<2||id==="QB")return;
+    var hot=id===p.ballTo,ex=id===p.extra;
+    el("polyline",{"data-id":id,points:pts.map(function(q){return X(q[0])+","+Y(q[1]);}).join(" "),fill:"none",stroke:hot?"#F2C230":"#F7F7F2","stroke-opacity":hot?.85:.5,"stroke-width":hot?2.6:1.6,"stroke-dasharray":ex?"3 3":"none","stroke-linecap":"round","stroke-linejoin":"round","marker-end":hot?"url(#ay)":"url(#aw)"},layers.routes);
+  });
+  if(tl.passLine){var a=tl.passLine[0],b=tl.passLine[1];el("line",{"data-id":"pass",x1:X(a[0]),y1:Y(a[1]),x2:X(b[0]),y2:Y(b[1]),stroke:"#F2C230","stroke-width":1.6,"stroke-dasharray":"2 4","stroke-linecap":"round","stroke-opacity":.9},layers.routes);}
+  p.red.forEach(function(c){cone(layers.cones,c[0],c[1],"var(--cone-red)");});
+  ORDER.forEach(function(id){var c=p.green[id];if(c){var g=el("g",{"data-id":id},layers.cones);cone(g,c[0],c[1],"var(--cone-green)",st.pos===id);}});
+  ORDER.forEach(function(id){
+    var hot=id===p.ballTo,ex=id===p.extra,g=el("g",{"data-id":id},layers.players);
+    el("circle",{r:12.5,fill:ex?"rgba(21,63,41,.55)":(hot?"#F2C230":"#F7F7F2"),stroke:ex?"#F7F7F2":"#153F29","stroke-width":ex?1.4:1.5,"stroke-dasharray":ex?"3 2.5":"none"},g);
+    el("text",{"text-anchor":"middle","dominant-baseline":"central",y:.5,"font-size":id.length>1?10:11,"font-weight":700,fill:ex?"#F7F7F2":(hot?"#3A2C00":"#13261C"),"font-family":"var(--f-body)"},g,id);
+    players[id]=g;
+  });
+  ball=el("ellipse",{rx:5.2,ry:3.4,fill:"var(--ball)",stroke:"#F7F7F2","stroke-width":1},field);
+  applyHighlight();
+}
+function applyHighlight(){
+  var sel=st.pos;
+  field.querySelectorAll("[data-id]").forEach(function(n){var id=n.getAttribute("data-id");var on=!sel||id===sel||(id==="pass"&&(sel==="QB"||sel===PLAYS[st.pi].ballTo));n.classList.toggle("dim",!on);});
+}
+function ballPos(t){
+  var tl=PLAYS[st.pi].tl;
+  for(var i=0;i<tl.B.length;i++){var s=tl.B[i];
+    if(t<=s[1]||i===tl.B.length-1){
+      if(s.length===3){var q=tl.at(s[2],t);return [q[0]+0.9,q[1]+0.6];}
+      var f=Math.max(0,Math.min(1,(t-s[0])/(s[1]-s[0]))),a=tl.at(s[2],s[0]),b=tl.at(s[3],s[1]);
+      return [a[0]+0.9+(b[0]-a[0])*f, a[1]+0.6+(b[1]-a[1])*f+Math.sin(f*Math.PI)*s[4]];
+    }}
+  return [0,0];
+}
+function anchorT(a){var tl=PLAYS[st.pi].tl;if(typeof a==="number")return a;if(a==="end")return tl.end-0.5;if(a==="rel")return tl.rel;return tl.A[a[0]][a[1]];}
+function render(){
+  var p=PLAYS[st.pi],tl=p.tl,t=st.t;
+  ORDER.forEach(function(id){var q=tl.at(id,t);players[id].setAttribute("transform","translate("+X(q[0])+","+Y(q[1])+")");});
+  var b=ballPos(t);ball.setAttribute("cx",X(b[0]));ball.setAttribute("cy",Y(b[1]));
+  var caps=p.caps,idx=-1;caps.forEach(function(c,i){if(t>=anchorT(c[0])-1e-6)idx=i;});
+  var cap=$("cap");cap.innerHTML="";
+  if(t<=0&&!st.run){cap.appendChild(document.createTextNode("▶ 재생을 누르면 학생과 공이 움직여요"));}
+  else if(idx>=0){var s=document.createElement("span");s.className="step";s.textContent=(idx+1)+"/"+caps.length;cap.appendChild(s);cap.appendChild(document.createTextNode(caps[idx][1]));}
+  if(t>=tl.rel){var c=document.createElement("span");c.className="chip4";c.textContent="공 넘긴 시간 "+(tl.rel*tk).toFixed(1)+"초 · 4초 안 ✓";cap.appendChild(c);}
+  $("clock").textContent=(t*tk).toFixed(1)+"초";
+  $("scrub").value=Math.round(t/tl.end*1000);
+}
+function loop(ts){
+  if(!st.run)return;
+  var dt=st.last?(ts-st.last)/1000:0;st.last=ts;
+  st.t+=dt*st.spd/tk;
+  if(st.t>=PLAYS[st.pi].tl.end){st.t=PLAYS[st.pi].tl.end;stop();}
+  render(); if(st.run)requestAnimationFrame(loop);
+}
+function stop(){st.run=false;$("playBtn").textContent="▶ 재생";}
+function play(){if(st.t>=PLAYS[st.pi].tl.end)st.t=0;st.run=true;st.last=0;$("playBtn").textContent="❚❚ 멈춤";requestAnimationFrame(loop);}
+
+function segButtons(box,items,cur,onPick){
+  box.innerHTML="";
+  items.forEach(function(it,i){var b=document.createElement("button");b.type="button";b.setAttribute("aria-pressed",String(i===cur));b.innerHTML=it[0]+(it[1]?"<small>"+it[1]+"</small>":"");b.onclick=function(){onPick(i);};box.appendChild(b);});
+}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function renderPanels(){
+  var p=PLAYS[st.pi],v=VENUES[st.vi];
+  segButtons($("playSeg"),PLAYS.map(function(q){return [q.no+" "+q.name,q.level];}),st.pi,function(i){st.pi=i;st.t=0;stop();refreshAll();});
+  segButtons($("venueSeg"),VENUES.map(function(q){return [q.name,""];}),st.vi,function(i){st.vi=i;tk=Math.sqrt(VENUES[i].s);stop();refreshAll();});
+  var posItems=[["전체",""]].concat(ORDER.map(function(id){return [id,""];}));
+  segButtons($("posSeg"),posItems,st.pos?ORDER.indexOf(st.pos)+1:0,function(i){st.pos=i===0?null:ORDER[i-1];renderPanels();drawStatic();render();});
+  var ids=st.pos?[st.pos]:ORDER,h="";
+  ids.forEach(function(id){
+    var tags="";if(id===p.ballTo)tags+=' <span class="tag ball">공 받는 사람</span>';if(id===p.extra)tags+=' <span class="tag">5명 조일 때만</span>';
+    h+='<div class="role"><h3>'+id+" · "+NAME[id]+tags+"</h3><ol>"+p.roles[id].map(function(x){return "<li>"+esc(x)+"</li>";}).join("")+"</ol></div>";
+  });
+  if(!st.pos)h+='<p class="hint" style="margin:0">위에서 내 포지션을 누르면 나만 진하게 보여요. 4명 조는 "5명 조일 때만" 표시된 학생을 빼고 해요.</p>';
+  $("roles").innerHTML=h;
+  var s=v.s,c='<div class="sub">'+esc(v.name)+" · 필요한 공간 "+esc(v.size)+'</div><div class="sub">출발 위치</div><ul class="rows">';
+  c+='<li><span class="dot pl"></span><b>C</b><span>출발선 가운데 (바로 뒤)</span></li>';
+  c+='<li><span class="dot pl"></span><b>QB</b><span>가운데 · 뒤 '+fmtNum(3*s)+'m</span></li>';
+  c+='<li><span class="dot pl"></span><b>RB</b><span>가운데 · 뒤 '+fmtNum(5*s)+"m"+(p.extra==="RB"?" · 5명 조일 때만":"")+"</span></li>";
+  c+='<li><span class="dot pl"></span><b>W1</b><span>출발선 왼쪽 '+fmtNum(10*s)+"m"+(p.extra==="W1"?" · 5명 조일 때만":"")+"</span></li>";
+  c+='<li><span class="dot pl"></span><b>W2</b><span>출발선 오른쪽 '+fmtNum(10*s)+"m"+(p.extra==="W2"?" · 5명 조일 때만":"")+"</span></li></ul>";
+  c+='<div class="sub">콘</div><ul class="rows">';
+  p.red.forEach(function(r){c+='<li><span class="dot red"></span><b>빨간</b><span>'+fmtPos(r,s)+" (수비 자리)</span></li>";});
+  ORDER.forEach(function(id){var g=p.green[id];if(g)c+='<li><span class="dot green"></span><b>'+id+"</b><span>"+fmtPos(g,s)+"</span></li>";});
+  c+="</ul>";$("cones").innerHTML=c;
+  var ck=COMMON.concat([p.special,COMMON2]);
+  $("check").innerHTML=ck.map(function(x){return "<li><span>"+esc(x)+"</span></li>";}).join("");
+  var vv=p.vids.concat([COMMON_VID]);
+  $("vids").innerHTML=vv.map(function(x){return '<a href="'+x[2]+'" target="_blank" rel="noopener">'+esc(x[0])+"<small>"+esc(x[1])+" · 유튜브</small></a>";}).join("");
+}
+function refreshAll(){renderPanels();drawStatic();render();}
+
+$("playBtn").onclick=function(){st.run?stop():play();};
+$("resetBtn").onclick=function(){stop();st.t=0;render();};
+$("speedBtn").onclick=function(){st.spd=st.spd===1?0.5:1;this.textContent=(st.spd===1?"1":"0.5")+"배";};
+$("scrub").oninput=function(e){stop();st.t=e.target.value/1000*PLAYS[st.pi].tl.end;render();};
+$("scrub").max=1000;
+refreshAll();
+if("serviceWorker" in navigator){try{navigator.serviceWorker.register("sw.js").catch(function(){});}catch(e){}}
+})();
+</script>
+</body>
+</html>
