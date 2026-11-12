@@ -206,6 +206,23 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .seg button{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:14px 0;font-weight:700;font-size:1.05rem}
 .seg button.ok[aria-pressed="true"]{background:var(--turf);color:var(--chalk);border-color:var(--turf)}
 .seg button.no[aria-pressed="true"]{background:var(--alert);color:#fff;border-color:var(--alert)}
+.play{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:grid;gap:8px}
+.phead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.phead .lab{font-family:"Black Han Sans","Noto Sans KR",sans-serif;font-size:1.2rem}
+.snap{flex:none;border:2px solid var(--turf);background:var(--surface);color:var(--turf);border-radius:999px;padding:6px 14px;font-weight:700;font-size:.95rem;min-width:6.5em;font-variant-numeric:tabular-nums}
+.snap.run{background:var(--flag);border-color:var(--flag);color:var(--flag-ink)}
+.snap.over{background:var(--alert);border-color:var(--alert);color:#fff}
+.posgrid{display:grid;gap:6px}
+.prow{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px}
+.prow .who{font-weight:700;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow .who small{font-weight:400;color:var(--muted);font-size:.72rem}
+.pbtns{display:flex;gap:4px}
+.pbtns button{min-width:2.6rem;padding:8px 0;border:1px solid var(--line);background:var(--bg);border-radius:8px;font-weight:700;font-size:.85rem;color:var(--ink)}
+.pbtns button[aria-pressed="true"]{background:var(--turf);border-color:var(--turf);color:var(--chalk)}
+.pbtns button.dup[aria-pressed="true"]{background:var(--alert);border-color:var(--alert);color:#fff}
+.pbtns button:disabled{opacity:.3}
+.posWarn{margin:0;font-size:.82rem;font-weight:700;color:var(--alert)}
+.posWarn:empty{display:none}
 .stboard{background:var(--turf);color:var(--chalk);border-radius:18px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .stboard .big1{font-family:"Black Han Sans","Noto Sans KR",sans-serif;font-size:3.2rem;line-height:1}
 .stboard small{display:block;opacity:.85;font-size:.85rem}
@@ -333,9 +350,25 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       <div class="notice" id="noTeam" hidden>조를 먼저 만들어 주세요. 위의 '+ 새 조'를 누르세요.</div>
 
       <div id="judge" class="view" style="gap:8px">
-        <div class="srow"><span class="lab">전략 1</span><div class="seg"><button class="ok" data-i="0" data-v="1" type="button" aria-pressed="false">성공</button><button class="no" data-i="0" data-v="0" type="button" aria-pressed="false">실패</button></div></div>
-        <div class="srow"><span class="lab">전략 2</span><div class="seg"><button class="ok" data-i="1" data-v="1" type="button" aria-pressed="false">성공</button><button class="no" data-i="1" data-v="0" type="button" aria-pressed="false">실패</button></div></div>
-        <div class="srow"><span class="lab">전략 3</span><div class="seg"><button class="ok" data-i="2" data-v="1" type="button" aria-pressed="false">성공</button><button class="no" data-i="2" data-v="0" type="button" aria-pressed="false">실패</button></div></div>
+        <p class="help" style="margin:0;font-size:.82rem">작전마다 조원의 포지션을 누르세요. 같은 학생이 다른 작전에서 같은 포지션을 맡으면 빨갛게 표시돼요. 공을 넘기기 전 '스냅 4초'를 누르면 4초를 세고 소리로 알려 줘요.</p>
+        <div class="play">
+          <div class="phead"><span class="lab">① 핸드오프 스윕</span><button class="snap" type="button" data-i="0" aria-label="① 핸드오프 스윕 스냅 4초 타이머">스냅 4초</button></div>
+          <div class="posgrid" id="pos0"></div>
+          <p class="posWarn" id="posWarn0" aria-live="polite"></p>
+          <div class="seg"><button class="ok" data-i="0" data-v="1" type="button" aria-pressed="false">○ 성공</button><button class="no" data-i="0" data-v="0" type="button" aria-pressed="false">× 실패</button></div>
+        </div>
+        <div class="play">
+          <div class="phead"><span class="lab">② 퀵 슬랜트</span><button class="snap" type="button" data-i="1" aria-label="② 퀵 슬랜트 스냅 4초 타이머">스냅 4초</button></div>
+          <div class="posgrid" id="pos1"></div>
+          <p class="posWarn" id="posWarn1" aria-live="polite"></p>
+          <div class="seg"><button class="ok" data-i="1" data-v="1" type="button" aria-pressed="false">○ 성공</button><button class="no" data-i="1" data-v="0" type="button" aria-pressed="false">× 실패</button></div>
+        </div>
+        <div class="play">
+          <div class="phead"><span class="lab">③ 페이크 후 아웃</span><button class="snap" type="button" data-i="2" aria-label="③ 페이크 후 아웃 스냅 4초 타이머">스냅 4초</button></div>
+          <div class="posgrid" id="pos2"></div>
+          <p class="posWarn" id="posWarn2" aria-live="polite"></p>
+          <div class="seg"><button class="ok" data-i="2" data-v="1" type="button" aria-pressed="false">○ 성공</button><button class="no" data-i="2" data-v="0" type="button" aria-pressed="false">× 실패</button></div>
+        </div>
         <div class="stboard" aria-live="polite">
           <div><span class="big1" id="stCount">0개</span><small id="stSub">3개 모두 판정하면 저장할 수 있어요</small></div>
           <div style="text-align:right"><span class="big1" id="stPts">−</span><small>척도표 배점</small></div>
@@ -774,7 +807,40 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   $("pickClear").addEventListener("click",()=>{ pair[pickSlot]=null; roles[pickSlot]="rec"; pickDlg.close(); renderPair(); });
 
   // ================= 공격 전략 =================
-  let curTeam=null, judge=[null,null,null], stHelper=new Set();
+  let curTeam=null, judge=[null,null,null], stHelper=new Set(), posSel=[{},{},{}];
+  const PLAYS=[{name:"① 핸드오프 스윕",short:"①",extra:"W1"},{name:"② 퀵 슬랜트",short:"②",extra:"RB"},{name:"③ 페이크 후 아웃",short:"③",extra:"W2"}];
+  const POS=["C","QB","RB","W1","W2"];
+  const posOptions = (i,t) => validMembers(t).length>=5 ? POS : POS.filter(p=>p!==PLAYS[i].extra);
+  function dupOf(id,i){ const p=posSel[i][id]; if(!p) return -1; for(let j=0;j<3;j++){ if(j!==i && posSel[j][id]===p) return j; } return -1; }
+  function renderPos(t){
+    const mem=validMembers(t);
+    for(let i=0;i<3;i++){
+      const grid=$("pos"+i); grid.textContent="";
+      const opts=posOptions(i,t), taken={};
+      mem.forEach(id=>{ const p=posSel[i][id]; if(p && opts.includes(p)) taken[p]=id; else if(p) delete posSel[i][id]; });
+      const warn=[];
+      mem.forEach(id=>{
+        const st=byId(id), row=document.createElement("div"); row.className="prow";
+        const who=document.createElement("span"); who.className="who"; who.textContent=st.name+" ";
+        if(isDone("strat",id)||stHelper.has(id)){ const sm=document.createElement("small"); sm.textContent="도우미"; who.append(sm); }
+        const bt=document.createElement("div"); bt.className="pbtns";
+        const d=dupOf(id,i);
+        opts.forEach(p=>{
+          const b=document.createElement("button"); b.type="button"; b.textContent=p;
+          const mine=posSel[i][id]===p;
+          b.setAttribute("aria-pressed",String(mine));
+          b.disabled = !mine && taken[p]!==undefined;
+          if(mine && d>=0) b.classList.add("dup");
+          b.setAttribute("aria-label",st.name+" "+PLAYS[i].short+" "+p+(b.disabled?" (다른 조원이 맡음)":""));
+          b.addEventListener("click",()=>{ posSel[i][id] = mine ? undefined : p; if(!posSel[i][id]) delete posSel[i][id]; renderStrat(); });
+          bt.append(b);
+        });
+        if(d>=0) warn.push(st.name+": "+PLAYS[d].short+"번 작전과 같은 "+posSel[i][id]);
+        row.append(who,bt); grid.append(row);
+      });
+      $("posWarn"+i).textContent = warn.length ? "같은 포지션 반복 · "+warn.join(", ") : "";
+    }
+  }
   const teamsOf = c => (db.teams[c] ||= []);
   const validMembers = t => t.members.filter(id=>byId(id));
   const stRecIds = t => validMembers(t).filter(id=>!isDone("strat",id) && !stHelper.has(id));
@@ -794,7 +860,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       const b=document.createElement("button"); b.type="button";
       b.textContent=t.name+" ("+validMembers(t).length+"명)";
       b.setAttribute("aria-pressed", String(t.id===curTeam));
-      b.addEventListener("click",()=>{ if(curTeam!==t.id){ curTeam=t.id; stHelper.clear(); clearJudge(); } renderStrat(); });
+      b.addEventListener("click",()=>{ if(curTeam!==t.id){ curTeam=t.id; stHelper.clear(); clearJudge(); posSel=[{},{},{}]; stopSnap(); } renderStrat(); });
       list.append(b);
     });
     const add=document.createElement("button"); add.type="button"; add.className="add"; add.textContent="+ 새 조";
@@ -815,6 +881,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
         mem.append(b);
       });
     }
+    if(t) renderPos(t);
     document.querySelectorAll("#judge .seg button").forEach(b=>b.setAttribute("aria-pressed", String(judge[+b.dataset.i]===+b.dataset.v)));
     const n=stCount(), ok=judged();
     $("stCount").textContent=n+"개";
@@ -825,9 +892,31 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     $("stSave").disabled = $("stSaveDone").disabled = !(ok && ids.length);
     $("stSave").textContent = !ids.length ? "기록할 조원이 없어요" : ok ? "조원 "+ids.length+"명에게 "+n+"개 저장" : "기록 저장";
     $("stBigBtn").disabled = !ok;
-    $("stNote").textContent = helpers.length ? helpers.map(nameOf).join(", ")+"은(는) 도우미라 기록하지 않아요" : "";
+    const notes=[];
+    if(helpers.length) notes.push(helpers.map(nameOf).join(", ")+"은(는) 도우미라 기록하지 않아요");
+    const noPos=ids.filter(id=>[0,1,2].some(i=>!posSel[i][id]));
+    if(noPos.length) notes.push("포지션 미등록: "+noPos.map(nameOf).join(", "));
+    if(ids.some(id=>[0,1,2].some(i=>dupOf(id,i)>=0))) notes.push("같은 포지션을 반복한 학생이 있어요 (저장은 돼요)");
+    $("stNote").textContent = notes.join(" · ");
   }
   function clearJudge(){ judge=[null,null,null]; }
+  let snapTick=null, snapIdx=-1, snapEnd=0, snapReset=null;
+  function snapBtns(){ return [...document.querySelectorAll("#judge .snap")]; }
+  function stopSnap(){ clearInterval(snapTick); clearTimeout(snapReset); snapTick=null; snapIdx=-1; snapBtns().forEach(b=>{ b.classList.remove("run","over"); b.textContent="스냅 4초"; }); }
+  snapBtns().forEach(b=>b.addEventListener("click",()=>{
+    const i=+b.dataset.i;
+    if(snapIdx===i){ stopSnap(); return; }
+    stopSnap(); audio(); beep(660,.08,.5);
+    snapIdx=i; snapEnd=performance.now()+4000; b.classList.add("run");
+    snapTick=setInterval(()=>{
+      const left=(snapEnd-performance.now())/1000;
+      if(left>0){ b.textContent=left.toFixed(1)+"초"; return; }
+      clearInterval(snapTick); snapTick=null;
+      b.classList.remove("run"); b.classList.add("over"); b.textContent="4초 끝!";
+      beep(880,.35,.6); setTimeout(()=>beep(880,.35,.6),420);
+      snapReset=setTimeout(()=>{ if(snapIdx===i) stopSnap(); },3000);
+    },50);
+  }));
   document.querySelectorAll("#judge .seg button").forEach(b=>b.addEventListener("click",()=>{
     const i=+b.dataset.i, v=+b.dataset.v;
     judge[i] = judge[i]===v ? null : v; $("stMsg").textContent=""; renderStrat();
@@ -840,7 +929,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     const n=stCount(), detail=judge.slice();
     ids.forEach(id=>{
       const r=recOf("strat",id);
-      r.attempts.push({count:n, at:Date.now(), team:t.name, detail}); r.absent=false;
+      r.attempts.push({count:n, at:Date.now(), team:t.name, detail, pos:[0,1,2].map(i=>posSel[i][id]||null)}); r.absent=false;
       if(markDone) r.done=true;
     });
     saveDB(); clearJudge();
@@ -971,7 +1060,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       const row=document.createElement("div"); row.className="try";
       if(!bestShown && a.count===b0){ row.classList.add("best"); bestShown=true; }
       const n=document.createElement("span"); n.className="n"; n.textContent=(i+1)+"회 "+a.count+"개";
-      const extra = k==="pass" ? (a.partner?" · 짝 "+nameOf(a.partner):"") : (a.team?" · "+a.team:"")+(a.detail?" · "+a.detail.map((v,j)=>(j+1)+(v?"○":"×")).join(" "):"");
+      const extra = k==="pass" ? (a.partner?" · 짝 "+nameOf(a.partner):"") : (a.team?" · "+a.team:"")+(a.detail?" · "+a.detail.map((v,j)=>"①②③"[j]+(a.pos&&a.pos[j]?" "+a.pos[j]:"")+(v?" ○":" ×")).join(" · "):"");
       const sm=document.createElement("small"); sm.textContent=fmtTime(a.at)+extra;
       const del=document.createElement("button"); del.type="button"; del.textContent="지우기";
       del.addEventListener("click",async()=>{ editDlg.close(); const ok=await ask((i+1)+"회 "+a.count+"개 기록을 지울까요?","지우기"); if(ok){ r.attempts.splice(i,1); cleanup(k,id); saveDB(); renderAllRec(); } editDlg.showModal(); renderEdit(); });
@@ -1047,7 +1136,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   $("stBigBtn").addEventListener("click",()=>{
     if(!judged()) return;
     const t=currentTeam(), n=stCount();
-    showBig("공격 전략 · "+judge.map((v,i)=>"전략"+(i+1)+(v?" ○":" ×")).join("  "), t? curClass+"반 "+t.name : "", n+" / 3", scoreRow("strat",n).pts+"점");
+    showBig("공격 전략 · "+judge.map((v,i)=>"①②③"[i]+(v?"○":"×")).join("  "), t? curClass+"반 "+t.name : "", n+" / 3", scoreRow("strat",n).pts+"점");
   });
 
   // ================= 백업 =================
