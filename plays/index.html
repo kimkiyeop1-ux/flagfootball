@@ -73,6 +73,13 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(-
 .fold summary small{font-weight:400;color:var(--muted);font-size:.8rem;margin-left:auto}
 .fold[open] summary small{display:none}
 .fold[open] summary{margin-bottom:10px}
+.posinfo{margin:0;display:grid;gap:12px}
+.posinfo>div{padding:10px 12px;border-radius:12px;background:var(--soft)}
+.posinfo dt{font-size:1.1rem;font-weight:700;margin-bottom:4px}
+.posinfo dt b{display:inline-block;min-width:2.4em;padding:0 8px;margin-right:4px;border-radius:999px;background:var(--turf);color:var(--chalk);text-align:center}
+.posinfo dt span{font-weight:400;font-size:.8rem;color:var(--muted)}
+.posinfo dd{margin:0;font-size:1.02rem;line-height:1.6}
+.posinfo dd.our{margin-top:6px;font-size:.9rem;font-weight:500;color:var(--accent-ink)}
 .bridge{margin:16px 0 12px;padding:8px;border-radius:10px;background:var(--soft);color:var(--accent-ink);text-align:center;font-weight:700;font-size:.95rem}
 .tag{font-size:.72rem;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--soft);color:var(--muted)}
 .tag.ball{background:var(--flag);color:var(--flag-ink)}
@@ -147,6 +154,14 @@ footer{color:var(--muted);font-size:.8rem;margin-top:20px;text-align:center}
         <h2 id="hCheck">이렇게 하면 성공</h2><ul class="check" id="check"></ul><p class="hint" id="checkHint">하나라도 못 지키면 그 작전은 실패예요.</p>
       </section>
       <details class="card fold" id="coneFold"><summary><span>콘·출발 위치</span><small>눌러서 펼치기</small></summary><div class="seg small" id="venueSeg" role="group" aria-label="장소 고르기" style="margin-bottom:10px"></div><div id="cones"></div><p class="hint">기준점: 출발선 한가운데(센터 바로 앞). 거리는 미터(m)예요.</p></details>
+      <details class="card fold" id="posFold"><summary><span>포지션 설명</span><small>눌러서 펼치기</small></summary>
+        <dl class="posinfo">
+          <div><dt><b>C</b> 센터 <span>Center</span></dt><dd>공격을 시작하는 사람이에요. 다리 사이로 QB에게 공을 넘기는 <b>스냅</b>을 하고, 스냅한 뒤에는 앞으로 달려 나가 패스를 받을 수 있는 선수가 돼요.</dd><dd class="our">우리 작전에서: ①②③ 모두 스냅 담당</dd></div>
+          <div><dt><b>QB</b> 쿼터백 <span>Quarterback</span></dt><dd><b>전진 패스</b>를 하고 <b>팀을 진두지휘</b>하는 사람이에요. 조원에게 작전 이름을 알려 주고, 스냅을 받아 4초 안에 핸드오프나 패스로 공을 넘겨요. 우리 수업에서는 QB가 공을 들고 직접 달리지 않아요.</dd><dd class="our">우리 작전에서: ① 핸드오프 · ② 패스 · ③ 페이크 핸드오프 후 패스</dd></div>
+          <div><dt><b>RB</b> 러닝백 <span>Running back</span></dt><dd><b>공을 들고 달리는</b> 사람이에요. QB 뒤에 서 있다가 핸드오프를 받아 빈 곳으로 달려요. 공을 받지 않을 때는 공 받는 자세로 달려서 상대를 속이는 역할도 해요.</dd><dd class="our">우리 작전에서: ① 공 받아 달리기 · ② 5명 조일 때 추가 · ③ 페이크 받는 자세로 달리기</dd></div>
+          <div><dt><b>W1 · W2</b> 리시버 <span>Wide receiver</span></dt><dd>양쪽 끝에 서서 <b>패스를 받는</b> 사람이에요. 정해진 길로 달려 빨간 콘 앞에서 정확히 꺾고 패스를 받아요. 공을 받지 않을 때도 곧게 달려서 수비를 멀리 끌고 가는 중요한 역할을 해요. W1은 왼쪽, W2는 오른쪽이에요.</dd><dd class="our">우리 작전에서: ② W2가 패스 받기 · ③ W1이 패스 받기</dd></div>
+        </dl>
+      </details>
     </aside>
   </div>
   <footer>이 앱은 아무 정보도 저장하거나 보내지 않아요.</footer>
