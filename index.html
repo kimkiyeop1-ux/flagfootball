@@ -232,6 +232,11 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .stboard small{display:block;opacity:.85;font-size:.85rem}
 .stSave{background:var(--ink);color:var(--bg)}
 .chip[aria-pressed="true"]{border:2px solid var(--turf);background:var(--soft)}
+.helperAdd{width:100%;border-style:dashed;color:var(--turf);font-size:.95rem;padding:10px}
+.mem.guest{border:2px dashed var(--flag);background:var(--surface)}
+.mem.guest small{color:var(--ink);font-weight:700}
+.mem.played{border-style:dashed;opacity:.75}
+.mem.played small{color:var(--turf);font-weight:700}
 .seg2{display:grid;grid-template-columns:1fr 1fr;background:var(--soft);border-radius:10px;padding:3px}
 .seg2 button{border:0;background:none;border-radius:8px;padding:8px;font-weight:700;color:var(--muted)}
 .seg2 button[aria-pressed="true"]{background:var(--surface);color:var(--ink)}
@@ -349,7 +354,8 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       <div class="card" id="teamCard">
         <div class="dlg-head"><h2 id="teamTitle"></h2><button class="ghost" type="button" id="teamEditBtn">조 편집</button></div>
         <div class="members" id="members"></div>
-        <p class="help" style="margin:0;font-size:.8rem">조원을 누르면 기록함과 도우미를 바꿀 수 있어요. 평가 완료한 학생은 도우미로 고정돼요.</p>
+        <button class="ghost helperAdd" type="button" id="helperAddBtn">+ 도우미 데려오기 (인원이 모자랄 때)</button>
+        <p class="help" style="margin:0;font-size:.8rem">조원을 누르면 기록함과 도우미를 바꿀 수 있어요. 데려온 도우미는 누르면 빠져요. 도우미는 포지션은 맡지만 기록되지 않고, 앱을 다시 열어도 유지돼요.</p>
       </div>
       <div class="notice" id="noTeam" hidden>조를 먼저 만들어 주세요. 위의 '+ 새 조'를 누르세요.</div>
 
@@ -359,7 +365,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
           <button type="button" data-p="1" aria-pressed="false">② 슬랜트</button>
           <button type="button" data-p="2" aria-pressed="false">③ 페이크</button>
         </div>
-        <p class="help" style="margin:0;font-size:.82rem">평가할 작전을 고르고, 조원 포지션을 누른 뒤 ○/×로 판정해 저장하세요. 작전마다 따로 저장되고, 세 작전의 성공 개수를 합쳐 점수가 돼요. 이미 그 작전에 성공한 학생은 자동으로 도우미가 돼요.</p>
+        <p class="help" style="margin:0;font-size:.82rem">평가할 작전을 고르고, 조원 포지션을 누른 뒤 ○/×로 판정해 저장하세요. 작전마다 따로 저장되고, 세 작전의 성공 개수를 합쳐 점수가 돼요. 이미 그 작전에 성공한 학생은 '① 완료 · 기록 안 함'으로 표시되고 다시 기록되지 않아요. 인원이 모자라면 위의 '+ 도우미 데려오기'를 누르세요.</p>
         <div class="play">
           <div class="phead"><span class="lab" id="playLab">① 핸드오프 스윕</span><button class="snap" type="button" id="snapBtn" aria-label="스냅 4초 타이머">스냅 4초</button></div>
           <div class="posgrid" id="posGrid"></div>
@@ -467,6 +473,13 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   </div>
 </dialog>
 
+<dialog id="helperDlg">
+  <div class="dlg">
+    <div class="dlg-head"><h2 id="helperDlgTitle">도우미 데려오기</h2><button class="primary" type="button" id="helperClose">완료</button></div>
+    <p class="help" style="margin:0" id="helperInfo">도와줄 학생을 누르세요. 이 조에서는 기록되지 않고, 그 학생의 원래 기록도 바뀌지 않아요.</p>
+    <div class="chips" id="helperChips"></div>
+  </div>
+</dialog>
 <dialog id="teamDlg">
   <div class="dlg">
     <div class="dlg-head"><h2 id="teamDlgTitle">조 만들기</h2><button class="ghost" type="button" id="teamClose">닫기</button></div>
@@ -820,16 +833,21 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   $("pickClear").addEventListener("click",()=>{ pair[pickSlot]=null; roles[pickSlot]="rec"; pickDlg.close(); renderPair(); });
 
   // ================= 공격 전략 =================
-  let curTeam=null, curPlay=0, verdict=null, stHelper=new Set(), posSel={};
+  let curTeam=null, curPlay=0, verdict=null, posSel={};
   const PLAYS=[{name:"① 핸드오프 스윕",short:"①",extra:"W1"},{name:"② 퀵 슬랜트",short:"②",extra:"RB"},{name:"③ 페이크 후 아웃",short:"③",extra:"W2"}];
   const POS=["C","QB","RB","W1","W2"];
   const teamsOf = c => (db.teams[c] ||= []);
   const validMembers = t => t.members.filter(id=>byId(id));
+  const helpersOf = t => (t.helpers ||= []);
+  const isHelper = (t,id) => helpersOf(t).includes(id);
+  const guestsOf = t => helpersOf(t).filter(id=>byId(id) && !t.members.includes(id));
+  const playersOf = t => validMembers(t).concat(guestsOf(t));
+  const teamOfStudent = id => { const tm=teamsOf(curClass).find(x=>x.members.includes(id)); return tm ? tm.name : ""; };
   const succeeded = (id,i) => playRes(store("strat")[id])[i].ok===1;
   const autoHelper = id => isDone("strat",id) || succeeded(id,curPlay);
-  const stRecIds = t => validMembers(t).filter(id=>!autoHelper(id) && !stHelper.has(id));
-  const stHelperIds = t => validMembers(t).filter(id=>autoHelper(id) || stHelper.has(id));
-  const posOptions = t => validMembers(t).length>=5 ? POS : POS.filter(p=>p!==PLAYS[curPlay].extra);
+  const stRecIds = t => validMembers(t).filter(id=>!autoHelper(id) && !isHelper(t,id));
+  const stHelperIds = t => playersOf(t).filter(id=>!stRecIds(t).includes(id));
+  const posOptions = t => playersOf(t).length>=5 ? POS : POS.filter(p=>p!==PLAYS[curPlay].extra);
   function prevPos(id){ return playRes(store("strat")[id]).map((o,j)=>({j,pos:o.pos})).filter(x=>x.j!==curPlay && x.pos.length); }
   function dupOf(id){ const p=posSel[id]; if(!p) return -1; const hit=prevPos(id).find(x=>x.pos.includes(p)); return hit ? hit.j : -1; }
   function currentTeam(){ return teamsOf(curClass).find(t=>t.id===curTeam) || null; }
@@ -837,16 +855,16 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 
   function renderPos(t){
     const grid=$("posGrid"); grid.textContent="";
-    const mem=validMembers(t), opts=posOptions(t), taken={}, warn=[];
+    const mem=playersOf(t), opts=posOptions(t), taken={}, warn=[], recSet=new Set(stRecIds(t));
     mem.forEach(id=>{ const p=posSel[id]; if(p && opts.includes(p) && taken[p]===undefined) taken[p]=id; else if(p) delete posSel[id]; });
     mem.forEach(id=>{
       const st=byId(id), row=document.createElement("div"); row.className="prow";
       const who=document.createElement("span"); who.className="who"; who.textContent=st.name+" ";
-      if(autoHelper(id)||stHelper.has(id)){ const sm=document.createElement("small"); sm.textContent="도우미"; who.append(sm); }
-      const pv=prevPos(id);
+      if(!recSet.has(id)){ const sm=document.createElement("small"); sm.textContent = isHelper(t,id) ? "도우미" : "기록 안 함"; who.append(sm); }
+      const pv=recSet.has(id) ? prevPos(id) : [];
       if(pv.length){ const sm=document.createElement("small"); sm.className="prev"; sm.textContent="이전: "+pv.map(x=>PLAYS[x.j].short+" "+[...new Set(x.pos)].join("/")).join(", "); who.append(sm); }
       const bt=document.createElement("div"); bt.className="pbtns";
-      const d=dupOf(id);
+      const d=recSet.has(id) ? dupOf(id) : -1;
       opts.forEach(p=>{
         const b=document.createElement("button"); b.type="button"; b.textContent=p;
         const mine=posSel[id]===p;
@@ -872,9 +890,9 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     if(!teams.find(t=>t.id===curTeam)) curTeam = teams[0]?.id || null;
     teams.forEach(t=>{
       const b=document.createElement("button"); b.type="button";
-      b.textContent=t.name+" ("+validMembers(t).length+"명)";
+      const g=guestsOf(t).length; b.textContent=t.name+" ("+validMembers(t).length+"명"+(g?" +도우미 "+g:"")+")";
       b.setAttribute("aria-pressed", String(t.id===curTeam));
-      b.addEventListener("click",()=>{ if(curTeam!==t.id){ curTeam=t.id; stHelper.clear(); resetPlayState(); } renderStrat(); });
+      b.addEventListener("click",()=>{ if(curTeam!==t.id){ curTeam=t.id; resetPlayState(); } renderStrat(); });
       list.append(b);
     });
     const add=document.createElement("button"); add.type="button"; add.className="add"; add.textContent="+ 새 조";
@@ -888,13 +906,21 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       $("teamTitle").textContent=curClass+"반 "+t.name;
       const mem=$("members"); mem.textContent="";
       validMembers(t).forEach(id=>{
-        const st=byId(id), done=isDone("strat",id), succ=succeeded(id,curPlay), helper=done||succ||stHelper.has(id);
-        const b=document.createElement("button"); b.type="button"; b.className="mem"+(helper?" helper":"");
+        const st=byId(id), done=isDone("strat",id), succ=succeeded(id,curPlay), man=isHelper(t,id);
+        const b=document.createElement("button"); b.type="button"; b.className="mem"+(man?" helper":(done||succ)?" played":"");
         const nb=document.createElement("b"); nb.textContent=st.no+" "+st.name;
         const sm=document.createElement("small");
-        sm.textContent = done ? "도우미 · 평가 완료" : succ ? "도우미 · "+PLAYS[curPlay].short+" 성공함" : stHelper.has(id) ? "도우미" : recLabel("strat",id);
+        sm.textContent = man ? "도우미 · 누르면 해제" : done ? "평가 완료 · 기록 안 함" : succ ? PLAYS[curPlay].short+" 완료 · 기록 안 함" : recLabel("strat",id);
         b.append(nb,sm);
-        b.addEventListener("click",()=>{ if(done||succ) return; stHelper.has(id)?stHelper.delete(id):stHelper.add(id); renderStrat(); });
+        b.addEventListener("click",()=>{ if(!man && (done||succ)) return; const h=helpersOf(t); man ? h.splice(h.indexOf(id),1) : h.push(id); saveDB(); renderStrat(); });
+        mem.append(b);
+      });
+      guestsOf(t).forEach(id=>{
+        const st=byId(id), b=document.createElement("button"); b.type="button"; b.className="mem guest";
+        const nb=document.createElement("b"); nb.textContent=st.no+" "+st.name;
+        const sm=document.createElement("small"); const from=teamOfStudent(id); sm.textContent="도우미"+(from?" ("+from+")":"")+" · 누르면 빼기";
+        b.append(nb,sm);
+        b.addEventListener("click",()=>{ const h=helpersOf(t); h.splice(h.indexOf(id),1); delete posSel[id]; saveDB(); renderStrat(); });
         mem.append(b);
       });
       renderPos(t);
@@ -910,7 +936,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     $("stSave").textContent = !ids.length ? "기록할 조원이 없어요" : ok ? "조원 "+ids.length+"명에게 "+PLAYS[curPlay].short+(verdict?" ○":" ×")+" 저장" : "기록 저장";
     $("stBigBtn").disabled = !ok;
     const notes=[];
-    if(helpers.length) notes.push(helpers.map(nameOf).join(", ")+"은(는) 도우미라 기록하지 않아요");
+    if(helpers.length) notes.push(helpers.map(nameOf).join(", ")+"은(는) 이번에 기록하지 않아요");
     const noPos=ids.filter(id=>!posSel[id]);
     if(noPos.length) notes.push("포지션 미등록: "+noPos.map(nameOf).join(", "));
     if(ids.some(id=>dupOf(id)>=0)) notes.push("같은 포지션을 반복한 학생이 있어요 (저장은 돼요)");
@@ -960,6 +986,27 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   $("stSave").addEventListener("click",()=>saveStrat(false));
   $("stSaveDone").addEventListener("click",()=>saveStrat(true));
 
+  // 도우미 데려오기
+  const helperDlg=$("helperDlg");
+  function renderHelperChips(){
+    const t=currentTeam(); if(!t) return;
+    const box=$("helperChips"); box.textContent="";
+    $("helperDlgTitle").textContent=t.name+" 도우미 데려오기";
+    classStudents(curClass).filter(st=>!t.members.includes(st.id)).forEach(st=>{
+      const b=document.createElement("button"); b.type="button"; b.className="chip";
+      const on=isHelper(t,st.id); b.setAttribute("aria-pressed",String(on));
+      const nb=document.createElement("b"); nb.textContent=st.no+" "+st.name;
+      const sm=document.createElement("small"); const from=teamOfStudent(st.id); sm.textContent = on ? "도우미로 들어감" : (from ? from+" 소속" : "조 없음");
+      b.append(nb,sm);
+      b.addEventListener("click",()=>{ const h=helpersOf(t); on ? h.splice(h.indexOf(st.id),1) : h.push(st.id); if(on) delete posSel[st.id]; saveDB(); renderHelperChips(); renderStrat(); });
+      box.append(b);
+    });
+    const n=guestsOf(t).length;
+    $("helperInfo").textContent = (n ? "도우미 "+n+"명 · " : "")+"도와줄 학생을 누르세요. 이 조에서는 기록되지 않고, 그 학생의 원래 기록도 바뀌지 않아요.";
+  }
+  $("helperAddBtn").addEventListener("click",()=>{ if(!currentTeam()) return; renderHelperChips(); helperDlg.showModal(); });
+  $("helperClose").addEventListener("click",()=>helperDlg.close());
+
   // 조 편집
   const teamDlg=$("teamDlg"); let teamEditId=null, teamSel=new Set();
   function openTeam(id){
@@ -996,7 +1043,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     const teams=teamsOf(curClass);
     if(teamEditId){ const t=teams.find(x=>x.id===teamEditId); t.name=name; t.members=members; }
     else { const id="t"+Date.now(); teams.push({id,name,members}); curTeam=id; }
-    saveDB(); stHelper.clear(); resetPlayState(); teamDlg.close(); renderStrat();
+    saveDB(); resetPlayState(); teamDlg.close(); renderStrat();
   });
   $("teamDel").addEventListener("click",async()=>{
     teamDlg.close();
@@ -1086,7 +1133,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       const extra = k==="pass" ? (a.partner?" · 짝 "+nameOf(a.partner):"") : (a.team?" · "+a.team:"")+(a.play!=null?(a.pos?" · "+a.pos:""):"")+(a.detail?" · "+a.detail.map((v,j)=>"①②③"[j]+(a.pos&&a.pos[j]?" "+a.pos[j]:"")+(v?" ○":" ×")).join(" · "):"");
       const sm=document.createElement("small"); sm.textContent=fmtTime(a.at)+extra;
       const del=document.createElement("button"); del.type="button"; del.textContent="지우기";
-      del.addEventListener("click",async()=>{ editDlg.close(); const ok=await ask((i+1)+"회 "+a.count+"개 기록을 지울까요?","지우기"); if(ok){ r.attempts.splice(i,1); cleanup(k,id); saveDB(); renderAllRec(); } editDlg.showModal(); renderEdit(); });
+      del.addEventListener("click",async()=>{ editDlg.close(); const ok=await ask((i+1)+"회 "+(isPlay ? "①②③"[a.play]+(a.ok?" ○":" ×") : a.count+"개")+" 기록을 지울까요?","지우기"); if(ok){ r.attempts.splice(i,1); cleanup(k,id); saveDB(); renderAllRec(); } editDlg.showModal(); renderEdit(); });
       row.append(n,sm,del); box.append(row);
     });
     editCount.max=KIND[k].max;
@@ -1207,7 +1254,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     });
   }
   async function afterRestore(text){
-    pair=[null,null]; roles=["rec","rec"]; curTeam=null; stHelper.clear(); clearJudge();
+    pair=[null,null]; roles=["rec","rec"]; curTeam=null; clearJudge();
     saveDB(); $("restoreIn").value=""; $("backupMsg").textContent = storageOK ? text : "이 브라우저에서는 저장이 안 돼요.";
     renderAll();
   }
@@ -1253,7 +1300,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     const when = src.__at ? fmtTime(src.__at)+"에 보낸 " : "";
     if(!(await ask(when+"기록을 이 기기 기록과 합칠까요? 같은 회차는 한 번만 들어가요.","합치기"))) return;
     const added=mergeFrom(src);
-    pair=[null,null]; roles=["rec","rec"]; curTeam=null; stHelper.clear(); clearJudge();
+    pair=[null,null]; roles=["rec","rec"]; curTeam=null; clearJudge();
     saveDB(); renderAll();
     xm.textContent = storageOK ? when+"기록을 합쳤어요. 새 회차 "+added+"건이 들어왔어요." : "이 브라우저에서는 저장이 안 돼요.";
   });
@@ -1285,7 +1332,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   });
   $("wipeBtn").addEventListener("click",async()=>{
     if(!(await ask("이 기기에 저장된 명단, 조 구성, 모든 기록을 지울까요? 되돌릴 수 없어요.","모두 지우기"))) return;
-    db=freshDB(); saveDB(); pair=[null,null]; roles=["rec","rec"]; curClass=null; curTeam=null; stHelper.clear(); clearJudge(); saveSettings();
+    db=freshDB(); saveDB(); pair=[null,null]; roles=["rec","rec"]; curClass=null; curTeam=null; clearJudge(); saveSettings();
     $("rosterMsg").textContent="모두 지웠어요."; renderAll();
   });
   function renderSetup(){
@@ -1304,7 +1351,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   }
   classSel.addEventListener("change",()=>{
     curClass=+classSel.value; saveSettings();
-    pair=[null,null]; roles=["rec","rec"]; curTeam=null; stHelper.clear(); clearJudge();
+    pair=[null,null]; roles=["rec","rec"]; curTeam=null; clearJudge();
     renderPair(); renderRecords(); renderStrat();
   });
   const VIEWS=["measure","strat","records","setup"];
