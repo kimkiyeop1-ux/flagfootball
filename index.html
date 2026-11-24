@@ -235,6 +235,11 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .helperAdd{width:100%;border-style:dashed;color:var(--turf);font-size:.95rem;padding:10px}
 .mem.guest{border:2px dashed var(--flag);background:var(--surface)}
 .mem.guest small{color:var(--ink);font-weight:700}
+.mem.guestrec{border-style:solid;border-color:var(--turf);background:var(--soft)}
+.mem.guestrec small{color:var(--turf)}
+.mem.absent{opacity:.55;border-style:dashed}
+.mem.absent b{text-decoration:line-through}
+.mem.absent small{color:var(--alert);font-weight:700}
 .mem.played{border-style:dashed;opacity:.75}
 .mem.played small{color:var(--turf);font-weight:700}
 .seg2{display:grid;grid-template-columns:1fr 1fr;background:var(--soft);border-radius:10px;padding:3px}
@@ -354,8 +359,8 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       <div class="card" id="teamCard">
         <div class="dlg-head"><h2 id="teamTitle"></h2><button class="ghost" type="button" id="teamEditBtn">조 편집</button></div>
         <div class="members" id="members"></div>
-        <button class="ghost helperAdd" type="button" id="helperAddBtn">+ 도우미 데려오기 (인원이 모자랄 때)</button>
-        <p class="help" style="margin:0;font-size:.8rem">조원을 누르면 기록함과 도우미를 바꿀 수 있어요. 데려온 도우미는 누르면 빠져요. 도우미는 포지션은 맡지만 기록되지 않고, 앱을 다시 열어도 유지돼요.</p>
+        <button class="ghost helperAdd" type="button" id="helperAddBtn">+ 다른 조 학생 데려오기 (도우미·결석생 보충)</button>
+        <p class="help" style="margin:0;font-size:.8rem">조원을 누를 때마다 기록함 → 도우미 → 오늘 결석 순서로 바뀌어요. '오늘 결석'은 오늘만 적용되고 내일이면 저절로 풀려요. 결석했던 학생은 그날 평가하는 조에 데려와서 한 번 눌러 '보충 · 기록함'으로 바꾸면 돼요. 데려온 학생을 빼려면 아래 버튼을 다시 눌러 선택을 풀어요.</p>
       </div>
       <div class="notice" id="noTeam" hidden>조를 먼저 만들어 주세요. 위의 '+ 새 조'를 누르세요.</div>
 
@@ -474,8 +479,8 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 
 <dialog id="helperDlg">
   <div class="dlg">
-    <div class="dlg-head"><h2 id="helperDlgTitle">도우미 데려오기</h2><button class="primary" type="button" id="helperClose">완료</button></div>
-    <p class="help" style="margin:0" id="helperInfo">도와줄 학생을 누르세요. 이 조에서는 기록되지 않고, 그 학생의 원래 기록도 바뀌지 않아요.</p>
+    <div class="dlg-head"><h2 id="helperDlgTitle">다른 조 학생 데려오기</h2><button class="primary" type="button" id="helperClose">완료</button></div>
+    <p class="help" style="margin:0" id="helperInfo">데려올 학생을 누르세요. 처음엔 도우미(기록 안 함)로 들어오고, 결석했던 학생이면 조원 칸을 한 번 더 눌러 '보충 · 기록함'으로 바꾸면 이 조 결과가 그 학생에게 저장돼요.</p>
     <div class="chips" id="helperChips"></div>
   </div>
 </dialog>
@@ -840,11 +845,17 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   const helpersOf = t => (t.helpers ||= []);
   const isHelper = (t,id) => helpersOf(t).includes(id);
   const guestsOf = t => helpersOf(t).filter(id=>byId(id) && !t.members.includes(id));
-  const playersOf = t => validMembers(t).concat(guestsOf(t));
+  const todayStr = () => { const d=new Date(); return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(); };
+  const dayList = (t,key) => { const o=t[key]; if(!o || o.d!==todayStr()){ t[key]={d:todayStr(), ids:[]}; } return t[key].ids; };
+  const isAbsent = (t,id) => !!(t.absentDay && t.absentDay.d===todayStr() && t.absentDay.ids.includes(id));
+  const isGuestRec = (t,id) => !!(t.guestRec && t.guestRec.d===todayStr() && t.guestRec.ids.includes(id));
+  const toggleIn = (arr,id,on) => { const i=arr.indexOf(id); if(on && i<0) arr.push(id); if(!on && i>=0) arr.splice(i,1); };
+  const presentMembers = t => validMembers(t).filter(id=>!isAbsent(t,id));
+  const playersOf = t => presentMembers(t).concat(guestsOf(t));
   const teamOfStudent = id => { const tm=teamsOf(curClass).find(x=>x.members.includes(id)); return tm ? tm.name : ""; };
   const succeeded = (id,i) => playRes(store("strat")[id])[i].ok===1;
   const autoHelper = id => isDone("strat",id) || succeeded(id,curPlay);
-  const stRecIds = t => validMembers(t).filter(id=>!autoHelper(id) && !isHelper(t,id));
+  const stRecIds = t => presentMembers(t).filter(id=>!autoHelper(id) && !isHelper(t,id)).concat(guestsOf(t).filter(id=>isGuestRec(t,id) && !autoHelper(id)));
   const stHelperIds = t => playersOf(t).filter(id=>!stRecIds(t).includes(id));
   const posOptions = t => playersOf(t).length>=5 ? POS : POS.filter(p=>p!==PLAYS[curPlay].extra);
   function prevPos(id){ return playRes(store("strat")[id]).map((o,j)=>({j,pos:o.pos})).filter(x=>x.j!==curPlay && x.pos.length); }
@@ -889,7 +900,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     if(!teams.find(t=>t.id===curTeam)) curTeam = teams[0]?.id || null;
     teams.forEach(t=>{
       const b=document.createElement("button"); b.type="button";
-      const g=guestsOf(t).length; b.textContent=t.name+" ("+validMembers(t).length+"명"+(g?" +도우미 "+g:"")+")";
+      const g=guestsOf(t).length, a=validMembers(t).filter(id=>isAbsent(t,id)).length; b.textContent=t.name+" ("+validMembers(t).length+"명"+(a?" 결석 "+a:"")+(g?" +데려옴 "+g:"")+")";
       b.setAttribute("aria-pressed", String(t.id===curTeam));
       b.addEventListener("click",()=>{ if(curTeam!==t.id){ curTeam=t.id; resetPlayState(); } renderStrat(); });
       list.append(b);
@@ -905,21 +916,29 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       $("teamTitle").textContent=curClass+"반 "+t.name;
       const mem=$("members"); mem.textContent="";
       validMembers(t).forEach(id=>{
-        const st=byId(id), done=isDone("strat",id), succ=succeeded(id,curPlay), man=isHelper(t,id);
-        const b=document.createElement("button"); b.type="button"; b.className="mem"+(man?" helper":(done||succ)?" played":"");
+        const st=byId(id), done=isDone("strat",id), succ=succeeded(id,curPlay), man=isHelper(t,id), ab=isAbsent(t,id);
+        const b=document.createElement("button"); b.type="button"; b.className="mem"+(ab?" absent":man?" helper":(done||succ)?" played":"");
         const nb=document.createElement("b"); nb.textContent=st.no+" "+st.name;
         const sm=document.createElement("small");
-        sm.textContent = man ? "도우미 · 누르면 해제" : done ? "평가 완료 · 기록 안 함" : succ ? PLAYS[curPlay].short+" 완료 · 기록 안 함" : recLabel("strat",id);
+        sm.textContent = ab ? "오늘 결석 · 누르면 복귀" : man ? "도우미 · 누르면 결석" : done ? "평가 완료 · 누르면 결석" : succ ? PLAYS[curPlay].short+" 완료 · 누르면 결석" : recLabel("strat",id)+" · 누르면 도우미";
         b.append(nb,sm);
-        b.addEventListener("click",()=>{ if(!man && (done||succ)) return; const h=helpersOf(t); man ? h.splice(h.indexOf(id),1) : h.push(id); saveDB(); renderStrat(); });
+        b.addEventListener("click",()=>{
+          const h=helpersOf(t), abs=dayList(t,"absentDay");
+          if(ab){ toggleIn(abs,id,false); }
+          else if(man){ toggleIn(h,id,false); toggleIn(abs,id,true); delete posSel[id]; }
+          else if(done||succ){ toggleIn(abs,id,true); delete posSel[id]; }
+          else { toggleIn(h,id,true); }
+          saveDB(); renderStrat();
+        });
         mem.append(b);
       });
       guestsOf(t).forEach(id=>{
-        const st=byId(id), b=document.createElement("button"); b.type="button"; b.className="mem guest";
+        const st=byId(id), rec=isGuestRec(t,id), auto=autoHelper(id), b=document.createElement("button"); b.type="button"; b.className="mem guest"+(rec&&!auto?" guestrec":"");
         const nb=document.createElement("b"); nb.textContent=st.no+" "+st.name;
-        const sm=document.createElement("small"); const from=teamOfStudent(id); sm.textContent="도우미"+(from?" ("+from+")":"")+" · 누르면 빼기";
+        const sm=document.createElement("small"); const from=teamOfStudent(id), f=from?" ("+from+")":"";
+        sm.textContent = auto ? "도우미"+f+" · "+(isDone("strat",id)?"평가 완료":PLAYS[curPlay].short+" 완료") : rec ? "보충 · 기록함"+f+" · 누르면 도우미" : "도우미"+f+" · 누르면 보충 기록";
         b.append(nb,sm);
-        b.addEventListener("click",()=>{ const h=helpersOf(t); h.splice(h.indexOf(id),1); delete posSel[id]; saveDB(); renderStrat(); });
+        b.addEventListener("click",()=>{ if(auto) return; toggleIn(dayList(t,"guestRec"),id,!rec); saveDB(); renderStrat(); });
         mem.append(b);
       });
       renderPos(t);
@@ -990,7 +1009,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   function renderHelperChips(){
     const t=currentTeam(); if(!t) return;
     const box=$("helperChips"); box.textContent="";
-    $("helperDlgTitle").textContent=t.name+" 도우미 데려오기";
+    $("helperDlgTitle").textContent=t.name+"에 데려오기";
     classStudents(curClass).filter(st=>!t.members.includes(st.id)).forEach(st=>{
       const b=document.createElement("button"); b.type="button"; b.className="chip";
       const on=isHelper(t,st.id); b.setAttribute("aria-pressed",String(on));
@@ -1001,7 +1020,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       box.append(b);
     });
     const n=guestsOf(t).length;
-    $("helperInfo").textContent = (n ? "도우미 "+n+"명 · " : "")+"도와줄 학생을 누르세요. 이 조에서는 기록되지 않고, 그 학생의 원래 기록도 바뀌지 않아요.";
+    $("helperInfo").textContent = (n ? "도우미 "+n+"명 · " : "")+"데려올 학생을 누르세요. 처음엔 도우미(기록 안 함)로 들어오고, 결석했던 학생이면 조원 칸을 한 번 더 눌러 '보충 · 기록함'으로 바꾸면 이 조 결과가 그 학생에게 저장돼요.";
   }
   $("helperAddBtn").addEventListener("click",()=>{ if(!currentTeam()) return; renderHelperChips(); helperDlg.showModal(); });
   $("helperClose").addEventListener("click",()=>helperDlg.close());
