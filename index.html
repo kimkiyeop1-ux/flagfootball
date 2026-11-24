@@ -238,6 +238,15 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .mem.guestrec{border-style:solid;border-color:var(--turf);background:var(--soft)}
 .mem.guestrec small{color:var(--turf)}
 .mem.absent{opacity:.55;border-style:dashed}
+.mem.away{opacity:.5;border-style:dashed}
+.mem.away small{color:var(--muted);font-weight:700}
+#helperChips{display:grid;grid-template-columns:1fr;gap:6px}
+.bring{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px}
+.bring .who{display:flex;flex-direction:column;min-width:0;line-height:1.25}
+.bring .who small{font-size:.75rem;color:var(--muted)}
+.bbtns{display:flex;gap:4px}
+.bbtns button{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px 8px;font-size:.8rem;font-weight:700;color:var(--ink)}
+.bbtns button[aria-pressed="true"]{background:var(--turf);border-color:var(--turf);color:var(--chalk)}
 .mem.absent b{text-decoration:line-through}
 .mem.absent small{color:var(--alert);font-weight:700}
 .mem.played{border-style:dashed;opacity:.75}
@@ -850,7 +859,23 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   const isAbsent = (t,id) => !!(t.absentDay && t.absentDay.d===todayStr() && t.absentDay.ids.includes(id));
   const isGuestRec = (t,id) => !!(t.guestRec && t.guestRec.d===todayStr() && t.guestRec.ids.includes(id));
   const toggleIn = (arr,id,on) => { const i=arr.indexOf(id); if(on && i<0) arr.push(id); if(!on && i>=0) arr.splice(i,1); };
-  const presentMembers = t => validMembers(t).filter(id=>!isAbsent(t,id));
+  const awayTeam = (t,id) => teamsOf(curClass).find(x=>x.id!==t.id && (x.helpers||[]).includes(id) && isGuestRec(x,id));
+  const presentMembers = t => validMembers(t).filter(id=>!isAbsent(t,id) && !awayTeam(t,id));
+  function cleanupDay(){
+    let ch=false; const td=todayStr();
+    teamsOf(curClass).forEach(t=>{
+      if(t.guestRec && t.guestRec.d!==td){ const gone=t.guestRec.ids; t.helpers=(t.helpers||[]).filter(id=>!gone.includes(id)); t.guestRec={d:td,ids:[]}; ch=true; }
+      if(t.absentDay && t.absentDay.d!==td){ t.absentDay={d:td,ids:[]}; ch=true; }
+    });
+    if(ch) saveDB();
+  }
+  function moveToTeam(t,id){
+    teamsOf(curClass).forEach(x=>{ if(x.id!==t.id){ x.members=x.members.filter(m=>m!==id); } });
+    if(!t.members.includes(id)) t.members.push(id);
+    t.helpers=(t.helpers||[]).filter(m=>m!==id);
+    if(t.guestRec) t.guestRec.ids=t.guestRec.ids.filter(m=>m!==id);
+    saveDB();
+  }
   const playersOf = t => presentMembers(t).concat(guestsOf(t));
   const teamOfStudent = id => { const tm=teamsOf(curClass).find(x=>x.members.includes(id)); return tm ? tm.name : ""; };
   const succeeded = (id,i) => playRes(store("strat")[id])[i].ok===1;
@@ -892,6 +917,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   }
 
   function renderStrat(){
+    if(curClass) cleanupDay();
     const has=db.students.length>0;
     $("stEmpty").hidden=has; $("stBody").hidden=!has;
     if(!has) return;
@@ -900,7 +926,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     if(!teams.find(t=>t.id===curTeam)) curTeam = teams[0]?.id || null;
     teams.forEach(t=>{
       const b=document.createElement("button"); b.type="button";
-      const g=guestsOf(t).length, a=validMembers(t).filter(id=>isAbsent(t,id)).length; b.textContent=t.name+" ("+validMembers(t).length+"명"+(a?" 결석 "+a:"")+(g?" +데려옴 "+g:"")+")";
+      const g=guestsOf(t).length, a=validMembers(t).filter(id=>isAbsent(t,id)).length, w=validMembers(t).filter(id=>awayTeam(t,id)).length; b.textContent=t.name+" ("+validMembers(t).length+"명"+(a?" 결석 "+a:"")+(w?" 다른 조 "+w:"")+(g?" +데려옴 "+g:"")+")";
       b.setAttribute("aria-pressed", String(t.id===curTeam));
       b.addEventListener("click",()=>{ if(curTeam!==t.id){ curTeam=t.id; resetPlayState(); } renderStrat(); });
       list.append(b);
@@ -916,6 +942,9 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       $("teamTitle").textContent=curClass+"반 "+t.name;
       const mem=$("members"); mem.textContent="";
       validMembers(t).forEach(id=>{
+        const away=awayTeam(t,id);
+        if(away){ const st=byId(id), b=document.createElement("button"); b.type="button"; b.className="mem away"; b.disabled=true;
+          const nb=document.createElement("b"); nb.textContent=st.no+" "+st.name; const sm=document.createElement("small"); sm.textContent="오늘 "+away.name+"에서 평가"; b.append(nb,sm); mem.append(b); return; }
         const st=byId(id), done=isDone("strat",id), succ=succeeded(id,curPlay), man=isHelper(t,id), ab=isAbsent(t,id);
         const b=document.createElement("button"); b.type="button"; b.className="mem"+(ab?" absent":man?" helper":(done||succ)?" played":"");
         const nb=document.createElement("b"); nb.textContent=st.no+" "+st.name;
@@ -936,7 +965,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
         const st=byId(id), rec=isGuestRec(t,id), auto=autoHelper(id), b=document.createElement("button"); b.type="button"; b.className="mem guest"+(rec&&!auto?" guestrec":"");
         const nb=document.createElement("b"); nb.textContent=st.no+" "+st.name;
         const sm=document.createElement("small"); const from=teamOfStudent(id), f=from?" ("+from+")":"";
-        sm.textContent = auto ? "도우미"+f+" · "+(isDone("strat",id)?"평가 완료":PLAYS[curPlay].short+" 완료") : rec ? "보충 · 기록함"+f+" · 누르면 도우미" : "도우미"+f+" · 누르면 보충 기록";
+        sm.textContent = auto ? "도우미"+f+" · "+(isDone("strat",id)?"평가 완료":PLAYS[curPlay].short+" 완료") : rec ? "오늘 이 조에서 평가"+f+" · 누르면 도우미" : "도우미"+f+" · 누르면 오늘 평가";
         b.append(nb,sm);
         b.addEventListener("click",()=>{ if(auto) return; toggleIn(dayList(t,"guestRec"),id,!rec); saveDB(); renderStrat(); });
         mem.append(b);
@@ -1011,16 +1040,23 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     const box=$("helperChips"); box.textContent="";
     $("helperDlgTitle").textContent=t.name+"에 데려오기";
     classStudents(curClass).filter(st=>!t.members.includes(st.id)).forEach(st=>{
-      const b=document.createElement("button"); b.type="button"; b.className="chip";
-      const on=isHelper(t,st.id); b.setAttribute("aria-pressed",String(on));
+      const id=st.id, from=teamOfStudent(id), helper=isHelper(t,id), rec=helper && isGuestRec(t,id);
+      const row=document.createElement("div"); row.className="bring";
+      const who=document.createElement("div"); who.className="who";
       const nb=document.createElement("b"); nb.textContent=st.no+" "+st.name;
-      const sm=document.createElement("small"); const from=teamOfStudent(st.id); sm.textContent = on ? "도우미로 들어감" : (from ? from+" 소속" : "조 없음");
-      b.append(nb,sm);
-      b.addEventListener("click",()=>{ const h=helpersOf(t); on ? h.splice(h.indexOf(st.id),1) : h.push(st.id); if(on) delete posSel[st.id]; saveDB(); renderHelperChips(); renderStrat(); });
-      box.append(b);
+      const sm=document.createElement("small"); sm.textContent = rec ? "오늘 이 조에서 평가" : helper ? "도우미로 들어옴" : (from ? from+" 소속" : "조 없음");
+      who.append(nb,sm);
+      const btns=document.createElement("div"); btns.className="bbtns";
+      const mk=(label,on,fn)=>{ const b=document.createElement("button"); b.type="button"; b.textContent=label; b.setAttribute("aria-pressed",String(on)); b.addEventListener("click",()=>{ fn(); saveDB(); renderHelperChips(); renderStrat(); }); btns.append(b); };
+      mk("도우미",helper&&!rec,()=>{ if(helper&&!rec){ toggleIn(helpersOf(t),id,false); delete posSel[id]; } else { toggleIn(helpersOf(t),id,true); toggleIn(dayList(t,"guestRec"),id,false); } });
+      mk("오늘만 평가",rec,()=>{ if(rec){ toggleIn(helpersOf(t),id,false); toggleIn(dayList(t,"guestRec"),id,false); delete posSel[id]; } else { teamsOf(curClass).forEach(x=>{ if(x.id!==t.id && x.guestRec) toggleIn(x.guestRec.ids,id,false); }); toggleIn(helpersOf(t),id,true); toggleIn(dayList(t,"guestRec"),id,true); } });
+      const mv=document.createElement("button"); mv.type="button"; mv.textContent="아예 옮기기"; mv.setAttribute("aria-pressed","false");
+      mv.addEventListener("click",async()=>{ if(!(await ask(st.name+" 학생을 "+(from?from+"에서 ":"")+t.name+"(으)로 옮길까요? 지금까지의 기록은 그대로 남아요.","옮기기"))) return; moveToTeam(t,id); renderHelperChips(); renderStrat(); });
+      btns.append(mv);
+      row.append(who,btns); box.append(row);
     });
     const n=guestsOf(t).length;
-    $("helperInfo").textContent = (n ? "도우미 "+n+"명 · " : "")+"데려올 학생을 누르세요. 처음엔 도우미(기록 안 함)로 들어오고, 결석했던 학생이면 조원 칸을 한 번 더 눌러 '보충 · 기록함'으로 바꾸면 이 조 결과가 그 학생에게 저장돼요.";
+    $("helperInfo").textContent = (n ? "데려온 학생 "+n+"명 · " : "")+"도우미: 기록 안 함 · 오늘만 평가: 오늘 이 조 결과로 기록되고 원래 조에서는 자동으로 빠져요(내일이면 원래대로) · 아예 옮기기: 이 조의 정식 조원이 돼요(되돌리려면 원래 조에서 다시 '아예 옮기기'). 도우미·오늘만 평가는 다시 누르면 취소돼요.";
   }
   $("helperAddBtn").addEventListener("click",()=>{ if(!currentTeam()) return; renderHelperChips(); helperDlg.showModal(); });
   $("helperClose").addEventListener("click",()=>helperDlg.close());
