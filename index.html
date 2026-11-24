@@ -1097,7 +1097,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     $("recSummary").textContent = curClass+"반 "+sts.length+"명 · 패스 측정 "+pm+"명 · 전략 측정 "+sm+"명 (✓ 평가 완료)";
     const first=sts[0];
     $("copyHelp").textContent = first
-      ? "전체 반 학생의 최고 기록이 학번과 함께 복사돼요. 구글 시트 '앱기록' 탭의 A1 칸을 누르고 붙여넣으면 끝이에요. '학생기록' 탭 M~P열은 학번으로 자동으로 채워져요. 매번 전체를 덮어쓰니 같은 곳에 붙여넣기만 하면 돼요."
+      ? "전체 반 학생의 최고 기록이 학번과 함께 복사돼요. 구글 시트 맨 아래 노란 '붙여넣기(앱기록)' 탭의 A1 칸을 누르고 붙여넣으면 끝이에요. '학생기록' 탭 M~P열은 학번으로 자동으로 채워져요. 매번 전체를 덮어쓰니 같은 곳에 붙여넣기만 하면 돼요."
       : "";
     $("copyFallback").hidden=true; $("copyMsg").textContent="";
     renderXfer();
@@ -1186,7 +1186,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     const t=sheetText(students);
     const ok=await copyText(t), fb=$("copyFallback");
     const pm=students.filter(st=>!hasRec("pass",st.id)).length, sm=students.filter(st=>!hasRec("strat",st.id)).length;
-    if(ok){ fb.hidden=true; $("copyMsg").textContent=label+" "+students.length+"명 복사됨 · 이제 구글 시트 '앱기록' 탭 A1 칸에 붙여넣으세요 · 빈칸: 패스 "+pm+"명, 전략 "+sm+"명"; }
+    if(ok){ fb.hidden=true; $("copyMsg").textContent=label+" "+students.length+"명 복사됨 · 이제 구글 시트 맨 아래 노란 '붙여넣기(앱기록)' 탭 A1 칸에 붙여넣으세요 · 빈칸: 패스 "+pm+"명, 전략 "+sm+"명"; }
     else { fb.hidden=false; fb.value=t; fb.focus(); fb.select(); $("copyMsg").textContent="자동 복사가 막혀 있어요. 위 칸이 선택된 상태에서 길게 눌러 복사하세요."; }
   }
   $("copyAllBtn").addEventListener("click",()=>doCopy(db.students, "전체"));
